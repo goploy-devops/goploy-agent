@@ -2,32 +2,25 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-version"
 	"github.com/joho/godotenv"
-	"github.com/zhenorzz/goploy/core"
-	"github.com/zhenorzz/goploy/model"
-	"github.com/zhenorzz/goploy/route"
-	"github.com/zhenorzz/goploy/task"
-	"github.com/zhenorzz/goploy/utils"
-	"github.com/zhenorzz/goploy/ws"
+	"github.com/zhenorzz/goploy-agent/core"
+	"github.com/zhenorzz/goploy-agent/route"
+	"github.com/zhenorzz/goploy-agent/task"
+	"github.com/zhenorzz/goploy-agent/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path"
 	"strconv"
 	"syscall"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -36,19 +29,19 @@ var (
 	s    string
 )
 
-const appVersion = "1.3.6"
+const appVersion = "1.0.0"
 
 func init() {
 	flag.StringVar(&core.AssetDir, "asset-dir", "", "default: ./")
 	flag.StringVar(&s, "s", "", "stop")
 	flag.BoolVar(&help, "help", false, "list available subcommands and some concept guides")
-	flag.BoolVar(&v, "version", false, "show goploy version")
+	flag.BoolVar(&v, "version", false, "show goploy-agent version")
 	// 改变默认的 Usage
 	flag.Usage = usage
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Options:\n")
+	_, _ = fmt.Fprintf(os.Stderr, "Options:\n")
 	flag.PrintDefaults()
 }
 
@@ -72,21 +65,16 @@ func main() {
           /_/            /____/   ` + appVersion + "\n")
 	install()
 	_ = godotenv.Load(core.GetEnvFile())
-	model.Init()
-	if err := model.Update(appVersion); err != nil {
-		println(err.Error())
-	}
 	pid := strconv.Itoa(os.Getpid())
-	_ = ioutil.WriteFile(path.Join(core.GetAssetDir(), "goploy.pid"), []byte(pid), 0755)
+	_ = ioutil.WriteFile(path.Join(core.GetAssetDir(), "goploy-agent.pid"), []byte(pid), 0755)
 	println("Start at " + time.Now().String())
-	println("goploy -h for more help")
+	println("goploy-agent -h for more help")
 	println("Current pid:   " + pid)
 	println("Config Loaded: " + core.GetEnvFile())
 	println("Log:           " + os.Getenv("LOG_PATH"))
 	println("Listen:        " + os.Getenv("PORT"))
 	println("Running...")
 	core.CreateValidator()
-	ws.Init()
 	route.Init()
 	task.Init()
 	// server
@@ -132,20 +120,6 @@ func install() {
 		return
 	}
 	println("Installation guide ↓")
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command("rsync", "--version")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		println(err.Error() + ", detail: " + stderr.String())
-		panic("Please check if rsync is installed correctly, see https://rsync.samba.org/download.html")
-	}
-	git := utils.GIT{}
-	if err := git.Run("--version"); err != nil {
-		println(err.Error() + ", detail: " + git.Err.String())
-		panic("Please check if git is installed correctly, see https://git-scm.com/downloads")
-	}
 	inputReader := bufio.NewReader(os.Stdin)
 	println("Installation guidelines (Enter to confirm input)")
 	println("Please enter the mysql user:")
@@ -199,41 +173,6 @@ func install() {
 	if len(port) == 0 {
 		port = "80"
 	}
-	println("Start to install the database...")
-
-	db, err := sql.Open("mysql", fmt.Sprintf(
-		"%s%s@tcp(%s:%s)/?charset=utf8mb4,utf8\n",
-		mysqlUser,
-		mysqlPassword,
-		mysqlHost,
-		mysqlPort))
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-	if err := model.ImportSQL(db, "sql/goploy.sql"); err != nil {
-		panic(err)
-	}
-	println("Database installation is complete")
-	envContent := "# when you edit its value, you need to restart\n"
-	envContent += "DB_TYPE=mysql\n"
-	envContent += fmt.Sprintf(
-		"DB_CONN=%s%s@(%s:%s)/goploy?charset=utf8mb4,utf8\n",
-		mysqlUser,
-		mysqlPassword,
-		mysqlHost,
-		mysqlPort)
-	envContent += fmt.Sprintf("SIGN_KEY=%d\n", time.Now().Unix())
-	envContent += fmt.Sprintf("LOG_PATH=%s\n", logPath)
-	envContent += "ENV=production\n"
-	envContent += fmt.Sprintf("PORT=%s\n", port)
-	println("Start writing configuration file...")
-	file, err := os.Create(core.GetEnvFile())
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	file.WriteString(envContent)
 	println("Write configuration file completed")
 }
 
@@ -258,7 +197,7 @@ func handleClientSignal() {
 }
 
 func checkUpdate() {
-	resp, err := http.Get("https://api.github.com/repos/zhenorzz/goploy/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/zhenorzz/goploy-agent/releases/latest")
 	if err != nil {
 		println("Check failed")
 		println(err.Error())
@@ -277,16 +216,19 @@ func checkUpdate() {
 		println(err.Error())
 		return
 	}
-	tagName := result["tag_name"].(string)
-	tagVer, err := version.NewVersion(tagName)
-	if err != nil {
-		println("Check version error")
-		println(err.Error())
-		return
-	}
-	currentVer, _ := version.NewVersion(appVersion)
-	if tagVer.GreaterThan(currentVer) {
-		println("New release available")
-		println(result["html_url"].(string))
+
+	if _, ok := result["tag_name"]; ok {
+		tagName := result["tag_name"].(string)
+		tagVer, err := version.NewVersion(tagName)
+		if err != nil {
+			println("Check version error")
+			println(err.Error())
+			return
+		}
+		currentVer, _ := version.NewVersion(appVersion)
+		if tagVer.GreaterThan(currentVer) {
+			println("New release available")
+			println(result["html_url"].(string))
+		}
 	}
 }

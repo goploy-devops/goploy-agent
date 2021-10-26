@@ -1,38 +1,79 @@
 import { RouteRecordRaw, createRouter, createWebHashHistory } from 'vue-router'
+import NProgress from 'nprogress' // progress bar
+import 'nprogress/nprogress.css' // progress bar style
+/* Layout */
+import Layout from '@/layout/index.vue'
 
-/**
- * Note: sub-menu only appear when route children.length >= 1
- * Detail see: https://panjiachen.github.io/vue-element-admin-site/guide/essentials/router-and-nav.html
- *
- * hidden: true                   if set true, item will not show in the sidebar(default is false)
- * alwaysShow: true               if set true, will always show the root menu
- *                                if not set alwaysShow, when item has more than one children route,
- *                                it will becomes nested mode, otherwise not show the root menu
- * redirect: noRedirect           if set noRedirect will no redirect in the breadcrumb
- * name:'router-name'             the name is used by <keep-alive> (must set!!!)
- * meta : {
-    roles: ['admin', 'manager', 'group-manager', 'member']   control the page roles (you can set multiple roles)
-    title: 'title'               the name show in sidebar and breadcrumb (recommend set)
-    icon: 'svg-name'             the icon show in the sidebar
-    breadcrumb: false            if set false, the item will hidden in breadcrumb(default is true)
-    activeMenu: '/example/list'  if set path, the sidebar will highlight the path you set
-  }
- */
-export const homeRoutes: RouteRecordRaw[] = [
-  // 预留常量 permission.js 会修改权限的第一条
-  {
-    path: '/',
-    name: 'Index',
-    component: () => import('@/views/index.vue'),
-    meta: { hidden: true },
-  },
-]
+export const navbarRoutes: RouteRecordRaw = {
+  path: '/',
+  redirect: '/general',
+  component: Layout,
+  meta: { hidden: true },
+  children: [
+    {
+      path: 'general',
+      name: 'General',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'General',
+        icon: 'el-icon-s-grid',
+      },
+    },
+    {
+      path: 'loadavg',
+      name: 'Loadavg',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'Loadavg',
+        icon: 'el-icon-odometer',
+      },
+    },
+    {
+      path: 'ram',
+      name: 'Ram',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'Ram',
+        icon: 'el-icon-help',
+      },
+    },
+    {
+      path: 'disk',
+      name: 'Disk',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'Disk',
+        icon: 'el-icon-postcard',
+      },
+    },
+    {
+      path: 'disk-io',
+      name: 'DiskIO',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'DiskIO',
+        icon: 'el-icon-bank-card',
+      },
+    },
+    {
+      path: 'cpu',
+      name: 'Cpu',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        title: 'Cpu',
+        icon: 'el-icon-cpu',
+      },
+    },
+  ],
+}
+
 /**
  * constantRoutes
  * a base page that does not have permission requirements
  * all roles can be accessed
  */
 export const constantRoutes: RouteRecordRaw[] = [
+  navbarRoutes,
   {
     path: '/404',
     name: '404',
@@ -40,12 +81,6 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: { hidden: true },
   },
 ]
-
-/**
- * asyncRoutes
- * the routes that need to be dynamically loaded based on user permission_uri
- */
-export const asyncRoutes: RouteRecordRaw[] = []
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -57,6 +92,19 @@ const router = createRouter({
     }
   },
   routes: constantRoutes,
+})
+
+NProgress.configure({ showSpinner: false }) // NProgress Configuration
+
+router.beforeEach(() => {
+  // start progress bar
+  NProgress.start()
+  return true
+})
+
+router.afterEach(() => {
+  // finish progress bar
+  NProgress.done()
 })
 
 export default router

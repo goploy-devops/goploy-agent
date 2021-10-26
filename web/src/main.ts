@@ -2,7 +2,6 @@ import { createApp } from 'vue'
 import 'normalize.css/normalize.css' // A modern alternative to CSS resets
 import '@/styles/index.scss' // global css
 import router from '@/router'
-import '@/permission'
 import i18n from '@/lang' // internationalization
 import SvgIcon from '@/components/SvgIcon/index.vue' // svg component
 import ElementPlus from 'element-plus'
