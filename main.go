@@ -116,45 +116,12 @@ func main() {
 func install() {
 	_, err := os.Stat(core.GetEnvFile())
 	if err == nil || os.IsExist(err) {
-		println("The configuration file already exists, no need to reinstall (if you need to reinstall, please back up the database `goploy` first, delete the .env file, then restart.)")
+		println("The configuration file already exists, no need to reinstall (if you need to reinstall, please delete the .env file, then restart.)")
 		return
 	}
 	println("Installation guide ↓")
 	inputReader := bufio.NewReader(os.Stdin)
 	println("Installation guidelines (Enter to confirm input)")
-	println("Please enter the mysql user:")
-	mysqlUser, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	mysqlUser = utils.ClearNewline(mysqlUser)
-	println("Please enter the mysql password:")
-	mysqlPassword, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	mysqlPassword = utils.ClearNewline(mysqlPassword)
-	if len(mysqlPassword) != 0 {
-		mysqlPassword = ":" + mysqlPassword
-	}
-	println("Please enter the mysql host(default 127.0.0.1, without port):")
-	mysqlHost, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	mysqlHost = utils.ClearNewline(mysqlHost)
-	if len(mysqlHost) == 0 {
-		mysqlHost = "127.0.0.1"
-	}
-	println("Please enter the mysql port(default 3306):")
-	mysqlPort, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	mysqlPort = utils.ClearNewline(mysqlPort)
-	if len(mysqlPort) == 0 {
-		mysqlPort = "3306"
-	}
 	println("Please enter the absolute path of the log directory(default stdout):")
 	logPath, err := inputReader.ReadString('\n')
 	if err != nil {
@@ -173,13 +140,24 @@ func install() {
 	if len(port) == 0 {
 		port = "80"
 	}
+	envContent := "# when you edit its value, you need to restart\n"
+	envContent += fmt.Sprintf("LOG_PATH=%s\n", logPath)
+	envContent += "ENV=production\n"
+	envContent += fmt.Sprintf("PORT=%s\n", port)
+	println("Start writing configuration file...")
+	file, err := os.Create(core.GetEnvFile())
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	file.WriteString(envContent)
 	println("Write configuration file completed")
 }
 
 func handleClientSignal() {
 	switch s {
 	case "stop":
-		pidStr, err := ioutil.ReadFile(path.Join(core.GetAssetDir(), "goploy.pid"))
+		pidStr, err := ioutil.ReadFile(path.Join(core.GetAssetDir(), "goploy-agent.pid"))
 		if err != nil {
 			log.Fatal("handle stop, ", err.Error(), ", may be the server not start")
 		}

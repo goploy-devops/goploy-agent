@@ -15,8 +15,7 @@ export const navbarRoutes: RouteRecordRaw = {
       name: 'General',
       component: () => import('@/views/index.vue'),
       meta: {
-        title: 'General',
-        icon: 'el-icon-s-grid',
+        icon: 'el-icon-info',
       },
     },
     {
@@ -24,17 +23,31 @@ export const navbarRoutes: RouteRecordRaw = {
       name: 'Loadavg',
       component: () => import('@/views/index.vue'),
       meta: {
-        title: 'Loadavg',
         icon: 'el-icon-odometer',
       },
     },
     {
       path: 'ram',
-      name: 'Ram',
+      name: 'RAM',
       component: () => import('@/views/index.vue'),
       meta: {
-        title: 'Ram',
         icon: 'el-icon-help',
+      },
+    },
+    {
+      path: 'cpu',
+      name: 'CPU',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        icon: 'el-icon-cpu',
+      },
+    },
+    {
+      path: 'net',
+      name: 'Net',
+      component: () => import('@/views/index.vue'),
+      meta: {
+        icon: 'el-icon-box',
       },
     },
     {
@@ -42,7 +55,6 @@ export const navbarRoutes: RouteRecordRaw = {
       name: 'Disk',
       component: () => import('@/views/index.vue'),
       meta: {
-        title: 'Disk',
         icon: 'el-icon-postcard',
       },
     },
@@ -51,17 +63,7 @@ export const navbarRoutes: RouteRecordRaw = {
       name: 'DiskIO',
       component: () => import('@/views/index.vue'),
       meta: {
-        title: 'DiskIO',
         icon: 'el-icon-bank-card',
-      },
-    },
-    {
-      path: 'cpu',
-      name: 'Cpu',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        title: 'Cpu',
-        icon: 'el-icon-cpu',
       },
     },
   ],

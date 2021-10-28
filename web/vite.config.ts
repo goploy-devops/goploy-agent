@@ -10,6 +10,9 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     resolve: {
       alias: [{ find: '@', replacement: path.resolve(__dirname, 'src') }],
     },
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    },
     plugins: [
       vue(),
       vueI18n({

@@ -17,10 +17,6 @@ const (
 	Pass             = 0
 	Deny             = 1
 	Error            = 2
-	AccountDisabled  = 10000
-	IllegalRequest   = 10001
-	NamespaceInvalid = 10002
-	LoginExpired     = 10086
 )
 
 //JSON response

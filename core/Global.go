@@ -5,27 +5,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 )
-
-//role
-const (
-	RoleAdmin        = "admin"
-	RoleManager      = "manager"
-	RoleGroupManager = "group-manager"
-	RoleMember       = "member"
-)
-
-//Roles all role
-var Roles = [...]string{RoleAdmin, RoleManager, RoleGroupManager, RoleMember}
-
-// LoginCookieName jwt cookie name
-const LoginCookieName = "goploy_token"
-
-// NamespaceHeaderName namespace cookie name
-const NamespaceHeaderName = "G-N-ID"
 
 var (
 	AssetDir string
@@ -59,14 +41,3 @@ func GetEnvFile() string {
 	return path.Join(GetAssetDir(), ".env")
 }
 
-func GetRepositoryPath() string {
-	return path.Join(GetAssetDir(), "repository")
-}
-
-func GetProjectFilePath(projectID int64) string {
-	return path.Join(GetRepositoryPath(), "project-file", "project_"+strconv.FormatInt(projectID, 10))
-}
-
-func GetProjectPath(projectID int64) string {
-	return path.Join(GetRepositoryPath(), "project_"+strconv.FormatInt(projectID, 10))
-}

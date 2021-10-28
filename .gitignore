@@ -14,7 +14,7 @@ repository/**/
 .env.local
 .env.*.local
 
-goploy
-goploy.exe*
-goploy.mac
-goploy.pid
+goploy-agent
+goploy-agent.exe*
+goploy-agent.mac
+goploy-agent.pid
