@@ -191,7 +191,23 @@
               @click="getDiskUsageInfo()"
             ></el-button>
           </template>
-          <div class="cmd-output" v-html="enterToBR(diskUsageInfo)"></div>
+          <el-table :data="diskUsageList" style="width: 100%">
+            <el-table-column
+              prop="filesystem"
+              label="Filesystem"
+              min-width="150"
+            />
+            <el-table-column prop="size" label="Size" />
+            <el-table-column prop="used" label="Used" />
+            <el-table-column prop="avail" label="Avail" />
+            <el-table-column prop="usedPcent" label="Use%" />
+            <el-table-column prop="mountedOn" label="Mounted on" />
+            <el-table-column prop="inodes" label="Inodes" />
+            <el-table-column prop="iUsed" label="IUsed" />
+            <el-table-column prop="iFree" label="IFree" />
+            <el-table-column prop="iUsedPcent" label="IUse%" />
+            <el-table-column prop="type" label="Type" />
+          </el-table>
         </el-card>
       </el-col>
     </el-row>
@@ -205,10 +221,17 @@
               type="text"
               style="margin-left: 10px; font-size: 16px"
               icon="el-icon-refresh"
-              @click="getDiskIOStatInfo()"
+              @click="getDiskIOStats()"
             ></el-button>
           </template>
-          <div class="cmd-output" v-html="enterToBR(diskIOStatInfo)"></div>
+          <el-table :data="diskIOStats.list" style="width: 100%">
+            <el-table-column
+              v-for="(name, index) in diskIOStats.header"
+              :key="index"
+              :prop="'' + index"
+              :label="name"
+            />
+          </el-table>
         </el-card>
       </el-col>
     </el-row>
@@ -267,8 +290,8 @@ export default defineComponent({
       ramInfo: {} as RAM['datagram'],
       cpuList: [],
       netList: [],
-      diskUsageInfo: '',
-      diskIOStatInfo: '',
+      diskUsageList: '',
+      diskIOStats: { header: [], list: [] },
     }
   },
   created() {
@@ -277,8 +300,8 @@ export default defineComponent({
     this.getRAMInfo()
     this.getCPUInfo()
     this.getNetInfo()
-    this.getDiskUsageInfo()
-    this.getDiskIOStatInfo()
+    this.getDiskUsageList()
+    this.getDiskIOStats()
   },
   methods: {
     humanSize,
@@ -310,14 +333,14 @@ export default defineComponent({
         this.netList = response.data
       })
     },
-    getDiskUsageInfo() {
+    getDiskUsageList() {
       new DiskUsage().request().then((response) => {
-        this.diskUsageInfo = response.data
+        this.diskUsageList = response.data
       })
     },
-    getDiskIOStatInfo() {
+    getDiskIOStats() {
       new DiskIOStat().request().then((response) => {
-        this.diskIOStatInfo = response.data
+        this.diskIOStats = response.data
       })
     },
   },

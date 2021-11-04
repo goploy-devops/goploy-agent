@@ -35,7 +35,7 @@ func verify(data []byte, v interface{}) error {
 // nproc --all
 // hostname
 // uptime -p
-func (Controller) General(gp *core.Goploy) *core.Response {
+func (Controller) General(*core.Goploy) *core.Response {
 	type GeneralInfo struct {
 		KernelVersion string `json:"kernelVersion"`
 		OS            string `json:"os"`
@@ -104,7 +104,7 @@ func (Controller) General(gp *core.Goploy) *core.Response {
 
 // Loadavg info
 // cat /proc/loadavg
-func (Controller) Loadavg(gp *core.Goploy) *core.Response {
+func (Controller) Loadavg(*core.Goploy) *core.Response {
 	type LoadavgInfo struct {
 		Avg   string `json:"avg"`
 		Avg5  string `json:"avg5"`
@@ -144,7 +144,7 @@ func (Controller) Loadavg(gp *core.Goploy) *core.Response {
 
 // RAM info
 // cat /proc/meminfo
-func (Controller) RAM(gp *core.Goploy) *core.Response {
+func (Controller) RAM(*core.Goploy) *core.Response {
 	type RAMInfo struct {
 		Total int `json:"total"`
 		Free  int `json:"free"`
@@ -177,7 +177,7 @@ func (Controller) RAM(gp *core.Goploy) *core.Response {
 
 // CPU info
 // cat /proc/stat
-func (Controller) CPU(gp *core.Goploy) *core.Response {
+func (Controller) CPU(*core.Goploy) *core.Response {
 	var cpuList [][]string
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -201,7 +201,7 @@ func (Controller) CPU(gp *core.Goploy) *core.Response {
 
 // Net info
 // cat /proc/net/dev
-func (Controller) Net(gp *core.Goploy) *core.Response {
+func (Controller) Net(*core.Goploy) *core.Response {
 	var netList [][]string
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -222,40 +222,80 @@ func (Controller) Net(gp *core.Goploy) *core.Response {
 
 // DiskUsage info
 // df -h  --output=source,size,used,avail,pcent,target,itotal,iused,iavail,ipcent,fstype
-func (Controller) DiskUsage(gp *core.Goploy) *core.Response {
-	var diskUsageInfo string
+func (Controller) DiskUsage(*core.Goploy) *core.Response {
+	// Filesystem            Size  Used Avail Use% Mounted on Inodes IUsed IFree IUse% Type
+	type DiskUsageInfo struct {
+		Filesystem string `json:"filesystem"`
+		Size       string `json:"size"`
+		Used       string `json:"used"`
+		Avail      string `json:"avail"`
+		UsedPcent  string `json:"usedPcent"`
+		MountedOn  string `json:"mountedOn"`
+		Inodes     string `json:"inodes"`
+		IUsed      string `json:"iUsed"`
+		IFree      string `json:"iFree"`
+		IUsedPcent string `json:"iUsedPcent"`
+		Type       string `json:"type"`
+	}
+	var diskUsageList []DiskUsageInfo
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("df", "-h", "--output=source,size,used,avail,pcent,target,itotal,iused,iavail,ipcent,fstype")
+	cmd := exec.Command("df", "-h", "--output=size,used,avail,pcent,target,itotal,iused,iavail,ipcent,fstype,source")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		diskUsageInfo = err.Error()
+
 	} else {
-		diskUsageInfo = utils.ClearNewline(stdout.String())
+		for _, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n")[1:] {
+			field := strings.Fields(line)
+			diskUsageList = append(diskUsageList, DiskUsageInfo{
+				Size:       field[0],
+				Used:       field[1],
+				Avail:      field[2],
+				UsedPcent:  field[3],
+				MountedOn:  field[4],
+				Inodes:     field[5],
+				IUsed:      field[6],
+				IFree:      field[7],
+				IUsedPcent: field[8],
+				Type:       field[9],
+				Filesystem: strings.Join(field[10:], " "),
+			})
+		}
 	}
 
 	return &core.Response{
-		Data: diskUsageInfo,
+		Data: diskUsageList,
 	}
 }
 
 // DiskIOStat info
 // iostat -xdk
-func (Controller) DiskIOStat(gp *core.Goploy) *core.Response {
-	var diskIOStatInfo string
+func (Controller) DiskIOStat(*core.Goploy) *core.Response {
+	var diskIOList [][]string
+	var header []string
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("iostat", "-xdk")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		diskIOStatInfo = err.Error()
 	} else {
-		diskIOStatInfo = utils.ClearNewline(stdout.String())
+		lines := strings.Split(utils.ClearNewline(stdout.String()), "\n")
+		header = strings.Fields(lines[2])
+		for _, line := range lines[3:] {
+			diskIOList = append(diskIOList, strings.Fields(line))
+		}
 	}
 
 	return &core.Response{
-		Data: diskIOStatInfo,
+		Data: struct {
+			Header []string `json:"header"`
+			List [][]string `json:"list"`
+		}{
+			Header: header,
+			List:   diskIOList,
+		},
 	}
 }

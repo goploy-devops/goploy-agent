@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-version"
 	"github.com/joho/godotenv"
+	model "github.com/zhenorzz/goploy-agent/Model"
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/route"
 	"github.com/zhenorzz/goploy-agent/task"
@@ -75,6 +76,7 @@ func main() {
 	println("Listen:        " + os.Getenv("PORT"))
 	println("Running...")
 	core.CreateValidator()
+	model.Init()
 	route.Init()
 	task.Init()
 	// server
@@ -131,6 +133,26 @@ func install() {
 	if len(logPath) == 0 {
 		logPath = "stdout"
 	}
+	println("Please enter the goploy server id (number):")
+	serverID, err := inputReader.ReadString('\n')
+	if err != nil {
+		panic("There were errors reading, exiting program.")
+	}
+	serverID = utils.ClearNewline(serverID)
+	if len(serverID) == 0 {
+		log.Fatal("You must enter the goploy server id.")
+	}
+
+	println("Please enter the goploy url (like http://localhost):")
+	goployURL, err := inputReader.ReadString('\n')
+	if err != nil {
+		panic("There were errors reading, exiting program.")
+	}
+	goployURL = utils.ClearNewline(goployURL)
+	if len(goployURL) == 0 {
+		log.Fatal("You must enter the goploy url.")
+	}
+
 	println("Please enter the listening port(default 80):")
 	port, err := inputReader.ReadString('\n')
 	if err != nil {
@@ -141,8 +163,10 @@ func install() {
 		port = "80"
 	}
 	envContent := "# when you edit its value, you need to restart\n"
-	envContent += fmt.Sprintf("LOG_PATH=%s\n", logPath)
 	envContent += "ENV=production\n"
+	envContent += fmt.Sprintf("GOPLOY_URL=%s\n", goployURL)
+	envContent += fmt.Sprintf("GOPLOY_SERVER_ID=%s\n", serverID)
+	envContent += fmt.Sprintf("LOG_PATH=%s\n", logPath)
 	envContent += fmt.Sprintf("PORT=%s\n", port)
 	println("Start writing configuration file...")
 	file, err := os.Create(core.GetEnvFile())
