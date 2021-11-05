@@ -37,6 +37,8 @@ const (
 	TypeLoadavg
 	TypeDiskUsage
 	TypeDiskIO
+	TypeNet
+	TypeTcp
 )
 
 // DB init when the program start
@@ -55,10 +57,8 @@ func Request(data RequestData) error {
 	data.ServerId = goployServerID
 	_url := fmt.Sprintf("%s%s", goployURL, "/agent/report")
 	requestData := new(bytes.Buffer)
-	err := json.NewEncoder(requestData).Encode(data)
-	if err != nil {
-		return errors.New(_url + " " + err.Error())
-	}
+	_ = json.NewEncoder(requestData).Encode(data)
+	requestStr := requestData.String()
 	resp, err := gClient.Post(_url, "application/json", requestData)
 	if err != nil {
 		return errors.New(_url + " " + err.Error())
@@ -67,9 +67,9 @@ func Request(data RequestData) error {
 	var responseBody ResponseBody
 	err = json.NewDecoder(resp.Body).Decode(&responseBody)
 	if err != nil {
-		return errors.New(_url + " " + err.Error())
+		return errors.New(_url + ", body: " + requestStr + " err: " + err.Error())
 	} else if responseBody.Code > 0 {
-		return errors.New(_url + " " + responseBody.Message)
+		return errors.New(_url + ", body: " + requestStr + " message: " + responseBody.Message)
 	}
 	return nil
 }

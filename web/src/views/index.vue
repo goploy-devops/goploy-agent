@@ -290,7 +290,7 @@ export default defineComponent({
       ramInfo: {} as RAM['datagram'],
       cpuList: [],
       netList: [],
-      diskUsageList: '',
+      diskUsageList: [],
       diskIOStats: { header: [], list: [] },
     }
   },
@@ -361,15 +361,6 @@ export default defineComponent({
   .card-unit {
     font-weight: 500;
     font-size: 14px;
-  }
-  .cmd-output {
-    white-space: pre;
-    font-size: 15px;
-    line-height: 24px;
-    font-family: monospace;
-    letter-spacing: 0.5px;
-    overflow-x: auto;
-    color: #606266;
   }
 }
 </style>

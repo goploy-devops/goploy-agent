@@ -67,23 +67,28 @@ func main() {
 	install()
 	_ = godotenv.Load(core.GetEnvFile())
 	pid := strconv.Itoa(os.Getpid())
+	port := os.Getenv("PORT")
 	_ = ioutil.WriteFile(path.Join(core.GetAssetDir(), "goploy-agent.pid"), []byte(pid), 0755)
 	println("Start at " + time.Now().String())
 	println("goploy-agent -h for more help")
-	println("Current pid:   " + pid)
-	println("Config Loaded: " + core.GetEnvFile())
-	println("Log:           " + os.Getenv("LOG_PATH"))
-	println("Listen:        " + os.Getenv("PORT"))
-	println("Running...")
+	println("Current pid   : " + pid)
+	println("Server id     : " + os.Getenv("GOPLOY_SERVER_ID"))
+	println("Config Loaded : " + core.GetEnvFile())
+	println("Report to     : " + os.Getenv("GOPLOY_URL"))
+	println("Log           : " + os.Getenv("LOG_PATH"))
+	if port != "" {
+		println("Server running at http://localhost:" + port)
+	}
 	core.CreateValidator()
 	model.Init()
 	route.Init()
 	task.Init()
+	go checkUpdate()
+
 	// server
 	srv := http.Server{
 		Addr: ":" + os.Getenv("PORT"),
 	}
-	go checkUpdate()
 	core.Gwg.Add(1)
 	go func() {
 		defer core.Gwg.Done()
@@ -104,12 +109,13 @@ func main() {
 		}
 		println("Task shutdown gracefully")
 	}()
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal("ListenAndServe: ", err.Error())
+	if port != "" {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("ListenAndServe: ", err.Error())
+		}
 	}
-	_ = os.Remove(path.Join(core.GetAssetDir(), "goploy.pid"))
-	println("Goroutine is trying to shutdown, wait for a minute")
 	core.Gwg.Wait()
+	_ = os.Remove(path.Join(core.GetAssetDir(), "goploy-agent.pid"))
 	println("Goroutine shutdown gracefully")
 	println("Success")
 	return
@@ -153,15 +159,12 @@ func install() {
 		log.Fatal("You must enter the goploy url.")
 	}
 
-	println("Please enter the listening port(default 80):")
+	println("Please enter the listening port(default turn off web ui):")
 	port, err := inputReader.ReadString('\n')
 	if err != nil {
 		panic("There were errors reading, exiting program.")
 	}
 	port = utils.ClearNewline(port)
-	if len(port) == 0 {
-		port = "80"
-	}
 	envContent := "# when you edit its value, you need to restart\n"
 	envContent += "ENV=production\n"
 	envContent += fmt.Sprintf("GOPLOY_URL=%s\n", goployURL)

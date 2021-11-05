@@ -211,7 +211,11 @@ func (Controller) Net(*core.Goploy) *core.Response {
 	if err := cmd.Run(); err != nil {
 	} else {
 		for _, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:] {
-			netList = append(netList, strings.Fields(line))
+			fields := strings.Fields(line)
+			if !strings.HasPrefix(fields[0], "eth") && !strings.HasPrefix(fields[0], "lo") {
+				continue
+			}
+			netList = append(netList, fields)
 		}
 
 	}
@@ -249,6 +253,9 @@ func (Controller) DiskUsage(*core.Goploy) *core.Response {
 	} else {
 		for _, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n")[1:] {
 			field := strings.Fields(line)
+			if !strings.HasPrefix(field[10], "/dev/") {
+				continue
+			}
 			diskUsageList = append(diskUsageList, DiskUsageInfo{
 				Size:       field[0],
 				Used:       field[1],
