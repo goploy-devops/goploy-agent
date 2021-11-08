@@ -18,54 +18,54 @@ export const navbarRoutes: RouteRecordRaw = {
         icon: 'el-icon-info',
       },
     },
-    {
-      path: 'loadavg',
-      name: 'Loadavg',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-odometer',
-      },
-    },
-    {
-      path: 'ram',
-      name: 'RAM',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-help',
-      },
-    },
-    {
-      path: 'cpu',
-      name: 'CPU',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-cpu',
-      },
-    },
-    {
-      path: 'net',
-      name: 'Net',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-box',
-      },
-    },
-    {
-      path: 'disk',
-      name: 'Disk',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-postcard',
-      },
-    },
-    {
-      path: 'disk-io',
-      name: 'DiskIO',
-      component: () => import('@/views/index.vue'),
-      meta: {
-        icon: 'el-icon-bank-card',
-      },
-    },
+    // {
+    //   path: 'loadavg',
+    //   name: 'Loadavg',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-odometer',
+    //   },
+    // },
+    // {
+    //   path: 'ram',
+    //   name: 'RAM',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-help',
+    //   },
+    // },
+    // {
+    //   path: 'cpu',
+    //   name: 'CPU',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-cpu',
+    //   },
+    // },
+    // {
+    //   path: 'net',
+    //   name: 'Net',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-box',
+    //   },
+    // },
+    // {
+    //   path: 'disk',
+    //   name: 'Disk',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-postcard',
+    //   },
+    // },
+    // {
+    //   path: 'disk-io',
+    //   name: 'DiskIO',
+    //   component: () => import('@/views/index.vue'),
+    //   meta: {
+    //     icon: 'el-icon-bank-card',
+    //   },
+    // },
   ],
 }
 
