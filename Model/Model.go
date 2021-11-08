@@ -37,8 +37,9 @@ const (
 	TypeLoadavg
 	TypeDiskUsage
 	TypeDiskIO
-	TypeNet
 	TypeTcp
+	TypePubNet
+	TypeLoNet
 )
 
 // DB init when the program start
