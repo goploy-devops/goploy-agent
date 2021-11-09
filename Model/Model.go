@@ -35,11 +35,11 @@ const (
 	TypeCPU
 	TypeRAM
 	TypeLoadavg
-	TypeDiskUsage
-	TypeDiskIO
 	TypeTcp
 	TypePubNet
 	TypeLoNet
+	TypeDiskUsage
+	TypeDiskIO
 )
 
 // DB init when the program start

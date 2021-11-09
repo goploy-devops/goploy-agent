@@ -181,6 +181,116 @@ func reportLoadavg() {
 	}
 }
 
+func reportTcp() {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("wc", "-l", "/proc/net/tcp")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
+		return
+	}
+
+	if err := model.Request(model.RequestData{
+		Type:       model.TypeTcp,
+		Item:       "tcp.total",
+		Value:      strings.Fields(utils.ClearNewline(stdout.String()))[0],
+		ReportTime: time.Now().Format("2006-01-02 15:04"),
+	}); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	cmd = exec.Command("grep", "-c", "^ *[0-9]\\+: [0-9A-F: ]\\{27\\} 01 ", "/proc/net/tcp")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
+		return
+	}
+
+	if err := model.Request(model.RequestData{
+		Type:       model.TypeTcp,
+		Item:       "tcp.established",
+		Value:      utils.ClearNewline(stdout.String()),
+		ReportTime: time.Now().Format("2006-01-02 15:04"),
+	}); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+
+}
+
+
+func reportNet() {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("cat", "/proc/net/dev")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
+		return
+	}
+	net1 := strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:]
+
+	time.Sleep(1 * time.Second)
+
+	stdout.Reset()
+	stderr.Reset()
+	cmd = exec.Command("cat", "/proc/net/dev")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
+		return
+	}
+	net2 := strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:]
+
+	for i, line := range net1 {
+		fields1 := strings.Fields(line)
+		logType := 0
+		if strings.HasPrefix(fields1[0], "eth") {
+			logType = model.TypePubNet
+		} else if strings.HasPrefix(fields1[0], "lo") {
+			logType = model.TypeLoNet
+		} else {
+			continue
+		}
+
+		fields2 := strings.Fields(net2[i])
+
+		in1, _ := strconv.Atoi(fields1[1])
+		in2, _ := strconv.Atoi(fields2[1])
+
+		in := in2 - in1
+
+		out1, _ := strconv.Atoi(fields1[9])
+		out2, _ := strconv.Atoi(fields2[9])
+
+		out := out2 - out1
+
+		if err := model.Request(model.RequestData{
+			Type:       logType,
+			Item:       fields1[0][:len(fields1[0])-1] + ".in",
+			Value:      strconv.Itoa(in),
+			ReportTime: time.Now().Format("2006-01-02 15:04"),
+		}); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+
+		if err := model.Request(model.RequestData{
+			Type:       logType,
+			Item:       fields1[0][:len(fields1[0])-1] + ".out",
+			Value:      strconv.Itoa(out),
+			ReportTime: time.Now().Format("2006-01-02 15:04"),
+		}); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+	}
+}
+
 func reportDisk() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -256,8 +366,8 @@ func reportDisk() {
 
 		diskStats2 := strings.Fields(utils.ClearNewline(stdout.String()))
 
-		rIOpms1, _ := strconv.Atoi(diskStats1[3])
-		rIOpms2, _ := strconv.Atoi(diskStats2[3])
+		rIOpms1, _ := strconv.Atoi(diskStats1[0])
+		rIOpms2, _ := strconv.Atoi(diskStats2[0])
 
 		rIOps := rIOpms2 - rIOpms1
 
@@ -286,114 +396,6 @@ func reportDisk() {
 	}
 }
 
-func reportTcp() {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command("wc", "-l", "/proc/net/tcp")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
-		return
-	}
-
-	if err := model.Request(model.RequestData{
-		Type:       model.TypeTcp,
-		Item:       "tcp_total",
-		Value:      strings.Fields(utils.ClearNewline(stdout.String()))[0],
-		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}); err != nil {
-		core.Log(core.ERROR, err.Error())
-	}
-
-	stdout.Reset()
-	stderr.Reset()
-	cmd = exec.Command("grep", "-c", "^ *[0-9]\\+: [0-9A-F: ]\\{27\\} 01 ", "/proc/net/tcp")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
-		return
-	}
-
-	if err := model.Request(model.RequestData{
-		Type:       model.TypeTcp,
-		Item:       "tcp_established",
-		Value:      utils.ClearNewline(stdout.String()),
-		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}); err != nil {
-		core.Log(core.ERROR, err.Error())
-	}
-
-}
-
-func reportNet() {
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command("cat", "/proc/net/dev")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
-		return
-	}
-	net1 := strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:]
-
-	time.Sleep(1 * time.Second)
-
-	stdout.Reset()
-	stderr.Reset()
-	cmd = exec.Command("cat", "/proc/net/dev")
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
-		return
-	}
-	net2 := strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:]
-
-	for i, line := range net1 {
-		fields1 := strings.Fields(line)
-		logType := 0
-		if strings.HasPrefix(fields1[0], "eth") {
-			logType = model.TypePubNet
-		} else if strings.HasPrefix(fields1[0], "lo") {
-			logType = model.TypeLoNet
-		} else {
-			continue
-		}
-
-		fields2 := strings.Fields(net2[i])
-
-		in1, _ := strconv.Atoi(fields1[1])
-		in2, _ := strconv.Atoi(fields2[1])
-
-		in := in2 - in1
-
-		out1, _ := strconv.Atoi(fields1[9])
-		out2, _ := strconv.Atoi(fields2[9])
-
-		out := out2 - out1
-
-		if err := model.Request(model.RequestData{
-			Type:       logType,
-			Item:       fields1[0][:len(fields1[0])-1] + ".in",
-			Value:      strconv.Itoa(in),
-			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}); err != nil {
-			core.Log(core.ERROR, err.Error())
-		}
-
-		if err := model.Request(model.RequestData{
-			Type:       logType,
-			Item:       fields1[0][:len(fields1[0])-1] + ".out",
-			Value:      strconv.Itoa(out),
-			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}); err != nil {
-			core.Log(core.ERROR, err.Error())
-		}
-	}
-}
 
 func Shutdown(ctx context.Context) error {
 	close(stop)
