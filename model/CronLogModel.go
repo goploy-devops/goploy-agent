@@ -1,17 +1,39 @@
 package model
 
-type CronModel struct {
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type CronLog struct {
 	ServerId   int64  `json:"serverId"`
-	ExecRes    int    `json:"status"`
+	CronId     int64  `json:"cronId"`
+	ExecCode   int    `json:"execCode"`
 	Message    string `json:"message"`
 	ReportTime string `json:"reportTime"`
 }
 
-func (c CronModel) GetList() error {
-	return Request("/cron/getList", c)
+type CronLogs []CronLog
+
+func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
+	cl.ServerId = goployServerID
+	responseBody, err := Request(fmt.Sprintf("/cron/getLogs?page=%d&rows=%d", pagination.Page, pagination.Rows), cl)
+	if err != nil {
+		return CronLogs{}, err
+	}
+	type Data struct {
+		List CronLogs `json:"list"`
+	}
+	var data Data
+	err = json.Unmarshal(responseBody.Data, &data)
+	if err != nil {
+		return CronLogs{}, fmt.Errorf("body: %v, err: %s", cl, err.Error())
+	}
+	return data.List, nil
 }
 
-func (c CronModel) Report() error {
-	c.ServerId = goployServerID
-	return Request("/cron/report", c)
+func (cl CronLog) Report() error {
+	cl.ServerId = goployServerID
+	_, err := Request("/cron/report", cl)
+	return err
 }

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/zhenorzz/goploy-agent/core"
+	"github.com/zhenorzz/goploy-agent/model"
+	"github.com/zhenorzz/goploy-agent/task"
 	"github.com/zhenorzz/goploy-agent/utils"
 	"gopkg.in/go-playground/validator.v9"
 	"os/exec"
@@ -13,8 +15,7 @@ import (
 )
 
 // Controller struct
-type Controller struct {
-}
+type Controller struct{}
 
 func verify(data []byte, v interface{}) error {
 	err := json.Unmarshal(data, v)
@@ -298,11 +299,37 @@ func (Controller) DiskIOStat(*core.Goploy) *core.Response {
 
 	return &core.Response{
 		Data: struct {
-			Header []string `json:"header"`
-			List [][]string `json:"list"`
+			Header []string   `json:"header"`
+			List   [][]string `json:"list"`
 		}{
 			Header: header,
 			List:   diskIOList,
 		},
+	}
+}
+
+func (Controller) CronList(*core.Goploy) *core.Response {
+	var crons model.Crons
+
+	for _, o := range task.JobList {
+		crons = append(crons, o.Cron)
+	}
+
+	return &core.Response{Data: crons}
+}
+
+func (Controller) CronLogs(gp *core.Goploy) *core.Response {
+	pagination, err := model.PaginationFrom(gp.URLQuery)
+	if err != nil {
+		return &core.Response{Code: core.Error, Message: err.Error()}
+	}
+	id, err := strconv.ParseInt(gp.URLQuery.Get("id"), 10, 64)
+	if err != nil {
+		return &core.Response{Code: core.Error, Message: err.Error()}
+	}
+	if crons, err := (model.CronLog{CronId: id}).GetList(pagination); err != nil {
+		return &core.Response{Code: core.Error, Message: err.Error()}
+	} else {
+		return &core.Response{Data: crons}
 	}
 }

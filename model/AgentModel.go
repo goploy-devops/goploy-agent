@@ -1,7 +1,12 @@
 package model
 
-
-type AgentModel struct {}
+type Agent struct {
+	ServerId   int64  `json:"serverId"`
+	Type       int    `json:"type"`
+	Item       string `json:"item"`
+	Value      string `json:"value"`
+	ReportTime string `json:"reportTime"`
+}
 
 const (
 	_ = iota
@@ -15,7 +20,9 @@ const (
 	TypeDiskIO
 )
 
+func (a Agent) Request() error {
+	a.ServerId = goployServerID
+	_, err := Request("/agent/report", a)
 
-func (AgentModel)Request(data RequestData) error {
-	return Request("/agent/report", data)
+	return err
 }

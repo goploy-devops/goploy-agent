@@ -37,6 +37,12 @@ type Router struct {
 	middlewares []func(gp *Goploy) error //中间件
 }
 
+func NewRouter() *Router {
+	rt := new(Router)
+	rt.whiteList = make(map[string]struct{})
+	return rt
+}
+
 // Start a router
 func (rt *Router) Start() {
 	if os.Getenv("ENV") == "production" {
@@ -50,10 +56,6 @@ func (rt *Router) Start() {
 	http.Handle("/", rt)
 }
 
-func (rt *Router) RegisterWhiteList(whiteList map[string]struct{}) {
-	rt.whiteList = whiteList
-}
-
 // Add router
 // pattern path
 // callback where path should be handled
@@ -63,6 +65,12 @@ func (rt *Router) Add(pattern, method string, callback func(gp *Goploy) *Respons
 		r.middlewares = append(r.middlewares, m)
 	}
 	rt.routes = append(rt.routes, r)
+	return rt
+}
+
+// White no need to check login
+func (rt *Router) White() *Router {
+	rt.whiteList[rt.routes[len(rt.routes)-1].pattern] = struct{}{}
 	return rt
 }
 

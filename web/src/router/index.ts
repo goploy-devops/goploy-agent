@@ -18,6 +18,14 @@ export const navbarRoutes: RouteRecordRaw = {
         icon: 'el-icon-info',
       },
     },
+    {
+      path: 'cron',
+      name: 'Cron',
+      component: () => import('@/views/cron.vue'),
+      meta: {
+        icon: 'el-icon-time',
+      },
+    },
     // {
     //   path: 'loadavg',
     //   name: 'Loadavg',

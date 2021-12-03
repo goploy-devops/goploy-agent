@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-version"
 	"github.com/joho/godotenv"
-	model "github.com/zhenorzz/goploy-agent/Model"
 	"github.com/zhenorzz/goploy-agent/core"
+	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/route"
 	"github.com/zhenorzz/goploy-agent/task"
 	"github.com/zhenorzz/goploy-agent/utils"
@@ -99,13 +99,13 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			println("Server shutdown failed, err: %v\n", err)
+			fmt.Printf("Task shutdown failed, err: %s\n", err.Error())
 		}
 		println("Server shutdown gracefully")
 
 		println("Task is trying to shutdown, wait for a minute")
 		if err := task.Shutdown(ctx); err != nil {
-			println("Task shutdown failed, err: %v\n", err)
+			fmt.Printf("Task shutdown failed, err: %s\n", err.Error())
 		}
 		println("Task shutdown gracefully")
 	}()

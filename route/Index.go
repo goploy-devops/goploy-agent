@@ -11,10 +11,6 @@ func Init() *router.Router {
 	var rt = new(router.Router)
 	// rt.Middleware(example)
 
-	// no need to check login
-	rt.RegisterWhiteList(map[string]struct{}{
-		"/user/login":      {},
-	})
 	rt.Add("/general", http.MethodGet, controller.Controller{}.General)
 	rt.Add("/loadavg", http.MethodGet, controller.Controller{}.Loadavg)
 	rt.Add("/ram", http.MethodGet, controller.Controller{}.RAM)
@@ -22,6 +18,9 @@ func Init() *router.Router {
 	rt.Add("/net", http.MethodGet, controller.Controller{}.Net)
 	rt.Add("/diskUsage", http.MethodGet, controller.Controller{}.DiskUsage)
 	rt.Add("/diskIOStat", http.MethodGet, controller.Controller{}.DiskIOStat)
+	rt.Add("/cronList", http.MethodGet, controller.Controller{}.CronList)
+	rt.Add("/cronLogs", http.MethodGet, controller.Controller{}.CronLogs)
+
 	rt.Start()
 	return rt
 }
