@@ -6,6 +6,7 @@ read x
 if [[ $x =~ ^[1-9].[0-9].[0-9]$ ]]
 then
   sed -i -e "s/const appVersion = \"[0-9].[0-9].[0-9]\"/const appVersion = \"$x\"/g" main.go
+  sed -i -e "s/\"version\": \"[0-9].[0-9].[0-9]\",/\"version\": \"$x\",/g" web/package.json
 fi
 
 echo "Build web? [Y/N]";
