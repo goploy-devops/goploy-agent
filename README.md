@@ -14,6 +14,7 @@ I need an agent to monitor my server, that it.
 
 ## Preview
 ![Preview](./preview.png)
+![Preview1](./preview_1.png)
 
 ## Contribute
 
