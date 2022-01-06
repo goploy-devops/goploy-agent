@@ -9,6 +9,7 @@ import (
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/utils"
+	"io/ioutil"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ func Init() {
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportRAMUsage)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportLoadavg)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportDisk)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportDiskIO)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportNet)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportTcp)
 	_, _ = task.Every(1).Minute().SingletonMode().Do(getCron)
@@ -402,18 +404,23 @@ func reportDisk() {
 				core.Log(core.ERROR, err.Error())
 			}
 		}
-		diskNameWithoutPrefix := strings.TrimPrefix(diskName, "/dev/")
+	}
+}
 
-		diskSuffixName := strings.Map(func(r rune) rune {
-			if '0' <= r && r <= '9' {
-				return -1
-			}
-			return r
-		}, diskNameWithoutPrefix)
+func reportDiskIO() {
+	disks, err := ioutil.ReadDir("/sys/block/")
+	if err != nil {
+		core.Log(core.ERROR, "err: "+err.Error())
+		return
+	}
 
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	for _, disk := range disks {
+		diskName := disk.Name()
 		stdout.Reset()
 		stderr.Reset()
-		cmd = exec.Command("cat", fmt.Sprintf("/sys/block/%s/%s/stat", diskSuffixName, diskNameWithoutPrefix))
+		cmd := exec.Command("cat", fmt.Sprintf("/sys/block/%s/stat", diskName))
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
@@ -426,7 +433,7 @@ func reportDisk() {
 		time.Sleep(1 * time.Second)
 		stdout.Reset()
 		stderr.Reset()
-		cmd = exec.Command("cat", fmt.Sprintf("/sys/block/%s/%s/stat", diskSuffixName, diskNameWithoutPrefix))
+		cmd = exec.Command("cat", fmt.Sprintf("/sys/block/%s/stat", diskName))
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
