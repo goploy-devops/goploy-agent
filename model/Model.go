@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -63,19 +64,21 @@ func Request(uri string, data interface{}) (ResponseBody, error) {
 	requestStr := requestData.String()
 	resp, err := gClient.Post(_url, "application/json", requestData)
 	if err != nil {
-		return ResponseBody{}, errors.New(err.Error() + ", body: " + requestStr)
+		return ResponseBody{}, fmt.Errorf("%s, request body: %s, requset err: %s", _url, requestStr, err.Error())
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return ResponseBody{}, fmt.Errorf("%s, body: %s, status code: %d", _url, requestStr, resp.StatusCode)
+		return ResponseBody{}, fmt.Errorf("%s, request body: %s, http status code: %d", _url, requestStr, resp.StatusCode)
 	}
 
+	body, _ := ioutil.ReadAll(resp.Body)
+
 	var responseBody ResponseBody
-	err = json.NewDecoder(resp.Body).Decode(&responseBody)
+	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
-		return responseBody, fmt.Errorf("%s body: %s, err: %s", _url, requestStr, err.Error())
+		return responseBody, fmt.Errorf("%s request body: %s, respond body: %s, decode json err: %s", _url, requestStr, string(body), err.Error())
 	} else if responseBody.Code != ResponseSuccess {
-		return responseBody, fmt.Errorf("%s body: %s, message: %s", _url, requestStr, responseBody.Message)
+		return responseBody, fmt.Errorf("%s request body: %s, respond body: %+v, respond code: %d", _url, requestStr, responseBody, responseBody.Code)
 	}
 
 	return responseBody, nil
