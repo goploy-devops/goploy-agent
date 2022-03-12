@@ -16,8 +16,17 @@ type CronLog struct {
 type CronLogs []CronLog
 
 func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
-	cl.ServerId = goployServerID
-	responseBody, err := Request(fmt.Sprintf("/cron/getLogs?page=%d&rows=%d", pagination.Page, pagination.Rows), cl)
+	responseBody, err := Request("/agent/getCronLogs", struct {
+		ServerID int64  `json:"serverId"`
+		CronID   int64  `json:"cronId"`
+		Page     uint64 `json:"page"`
+		Rows     uint64 `json:"rows"`
+	}{
+		ServerID: goployServerID,
+		CronID:   cl.CronId,
+		Page:     pagination.Page,
+		Rows:     pagination.Rows,
+	})
 	if err != nil {
 		return CronLogs{}, err
 	}
@@ -34,6 +43,6 @@ func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
 
 func (cl CronLog) Report() error {
 	cl.ServerId = goployServerID
-	_, err := Request("/cron/report", cl)
+	_, err := Request("/agent/cronReport", cl)
 	return err
 }

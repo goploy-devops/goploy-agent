@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/zhenorzz/goploy-agent/config"
 	"io"
 	"log"
 	"os"
@@ -24,7 +25,7 @@ const (
 // Log information to file with logged day
 func Log(lv LogLevel, content string) {
 	var logFile io.Writer
-	logPathEnv := os.Getenv("LOG_PATH")
+	logPathEnv := config.Toml.Log.Path
 	if strings.ToLower(logPathEnv) == "stdout" {
 		logFile = os.Stdout
 	} else {
@@ -38,7 +39,12 @@ func Log(lv LogLevel, content string) {
 				fmt.Println(err.Error())
 			}
 		}
-		file := logPath + "/" + time.Now().Format("20060102") + ".log"
+		file := logPath + "/"
+		if config.Toml.Log.Split {
+			file += time.Now().Format("20060102") + ".log"
+		} else {
+			file += "runtime.log"
+		}
 		logFile, err = os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
 		if nil != err {
 			fmt.Println(err.Error())

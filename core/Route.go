@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/zhenorzz/goploy-agent/config"
 	"github.com/zhenorzz/goploy-agent/web"
 	"io/fs"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -45,7 +45,7 @@ func NewRouter() *Router {
 
 // Start a router
 func (rt *Router) Start() {
-	if os.Getenv("ENV") == "production" {
+	if config.Toml.Env == "production" {
 		subFS, err := fs.Sub(web.Dist, "dist")
 		if err != nil {
 			log.Fatal(err)
@@ -94,7 +94,7 @@ func (rt *Router) Middleware(middleware func(gp *Goploy) error) {
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If in production env, serve file in go server,
 	// else serve file in npm
-	if os.Getenv("ENV") == "production" {
+	if config.Toml.Env == "production" {
 		if "/" == r.URL.Path {
 			r, err := web.Dist.Open("dist/index.html")
 			if err != nil {

@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-version"
-	"github.com/joho/godotenv"
+	"github.com/zhenorzz/goploy-agent/config"
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/route"
 	"github.com/zhenorzz/goploy-agent/task"
-	"github.com/zhenorzz/goploy-agent/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -65,19 +63,19 @@ func main() {
 \____/\____/ .___/_/\____/\__, /  
           /_/            /____/   ` + appVersion + "\n")
 	install()
-	_ = godotenv.Load(core.GetEnvFile())
+	config.Create(core.GetConfigFile())
 	pid := strconv.Itoa(os.Getpid())
-	port := os.Getenv("PORT")
 	_ = ioutil.WriteFile(path.Join(core.GetAssetDir(), "goploy-agent.pid"), []byte(pid), 0755)
 	println("Start at " + time.Now().String())
 	println("goploy-agent -h for more help")
-	println("Current pid   : " + pid)
-	println("Server id     : " + os.Getenv("GOPLOY_SERVER_ID"))
-	println("Config Loaded : " + core.GetEnvFile())
-	println("Report to     : " + os.Getenv("GOPLOY_URL"))
-	println("Log           : " + os.Getenv("LOG_PATH"))
-	if port != "" {
-		println("Server running at http://localhost:" + port)
+	println("Current pid:    " + pid)
+	println("Config Loaded:  " + core.GetConfigFile())
+	fmt.Printf("Server id:      %d\n", config.Toml.Goploy.ServerID)
+	println("Env:            " + config.Toml.Env)
+	println("Report to:      " + config.Toml.Goploy.URL)
+	println("Log:            " + config.Toml.Log.Path)
+	if config.Toml.Web.Port != "" {
+		println("Listen:         " + config.Toml.Web.Port)
 	}
 	core.CreateValidator()
 	model.Init()
@@ -87,7 +85,7 @@ func main() {
 
 	// server
 	srv := http.Server{
-		Addr: ":" + os.Getenv("PORT"),
+		Addr: ":" + config.Toml.Web.Port,
 	}
 	core.Gwg.Add(1)
 	go func() {
@@ -109,7 +107,7 @@ func main() {
 		}
 		println("Task shutdown gracefully")
 	}()
-	if port != "" {
+	if config.Toml.Web.Port != "" {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("ListenAndServe: ", err.Error())
 		}
@@ -122,63 +120,14 @@ func main() {
 }
 
 func install() {
-	_, err := os.Stat(core.GetEnvFile())
+	_, err := os.Stat(core.GetConfigFile())
 	if err == nil || os.IsExist(err) {
 		println("The configuration file already exists, no need to reinstall (if you need to reinstall, please delete the .env file, then restart.)")
 		return
+	} else {
+		println("The configuration file is not exists, please copy goploy-agent.example.toml to goploy-agent.toml")
+		os.Exit(1)
 	}
-	println("Installation guide ↓")
-	inputReader := bufio.NewReader(os.Stdin)
-	println("Installation guidelines (Enter to confirm input)")
-	println("Please enter the absolute path of the log directory(default stdout):")
-	logPath, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	logPath = utils.ClearNewline(logPath)
-	if len(logPath) == 0 {
-		logPath = "stdout"
-	}
-	println("Please enter the goploy server id (number):")
-	serverID, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	serverID = utils.ClearNewline(serverID)
-	if len(serverID) == 0 {
-		log.Fatal("You must enter the goploy server id.")
-	}
-
-	println("Please enter the goploy url (like http://localhost):")
-	goployURL, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	goployURL = utils.ClearNewline(goployURL)
-	if len(goployURL) == 0 {
-		log.Fatal("You must enter the goploy url.")
-	}
-
-	println("Please enter the listening port(default turn off web ui):")
-	port, err := inputReader.ReadString('\n')
-	if err != nil {
-		panic("There were errors reading, exiting program.")
-	}
-	port = utils.ClearNewline(port)
-	envContent := "# when you edit its value, you need to restart\n"
-	envContent += "ENV=production\n"
-	envContent += fmt.Sprintf("GOPLOY_URL=%s\n", goployURL)
-	envContent += fmt.Sprintf("GOPLOY_SERVER_ID=%s\n", serverID)
-	envContent += fmt.Sprintf("LOG_PATH=%s\n", logPath)
-	envContent += fmt.Sprintf("PORT=%s\n", port)
-	println("Start writing configuration file...")
-	file, err := os.Create(core.GetEnvFile())
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	file.WriteString(envContent)
-	println("Write configuration file completed")
 }
 
 func handleClientSignal() {

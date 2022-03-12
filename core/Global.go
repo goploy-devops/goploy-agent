@@ -41,3 +41,6 @@ func GetEnvFile() string {
 	return path.Join(GetAssetDir(), ".env")
 }
 
+func GetConfigFile() string {
+	return path.Join(GetAssetDir(), "goploy-agent.toml")
+}

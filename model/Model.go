@@ -2,13 +2,15 @@ package model
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zhenorzz/goploy-agent/config"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 )
@@ -39,8 +41,8 @@ var gClient = &http.Client{Timeout: 5 * time.Second}
 
 // Init -
 func Init() {
-	goployURL = os.Getenv("GOPLOY_URL")
-	goployServerID, _ = strconv.ParseInt(os.Getenv("GOPLOY_SERVER_ID"), 10, 64)
+	goployURL = config.Toml.Goploy.URL
+	goployServerID = config.Toml.Goploy.ServerID
 }
 
 // PaginationFrom param return pagination struct
@@ -59,9 +61,26 @@ func PaginationFrom(param url.Values) (Pagination, error) {
 
 func Request(uri string, data interface{}) (ResponseBody, error) {
 	_url := fmt.Sprintf("%s%s", goployURL, uri)
+	u, err := url.Parse(_url)
+	if err != nil {
+		return ResponseBody{}, fmt.Errorf("%s, parse error: %s", _url, err.Error())
+	}
+
 	requestData := new(bytes.Buffer)
-	_ = json.NewEncoder(requestData).Encode(data)
+	err = json.NewEncoder(requestData).Encode(data)
+	if err != nil {
+		return ResponseBody{}, fmt.Errorf("%s, request data %+v, json encode error: %s", _url, data, err.Error())
+	}
 	requestStr := requestData.String()
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	unsignedStr := requestStr + timestamp + config.Toml.Goploy.Key
+	h := sha256.New()
+	h.Write([]byte(unsignedStr))
+	q := u.Query()
+	q.Set("timestamp", timestamp)
+	q.Set("sign", base64.URLEncoding.EncodeToString(h.Sum(nil)))
+	u.RawQuery = q.Encode()
+	_url = u.String()
 	resp, err := gClient.Post(_url, "application/json", requestData)
 	if err != nil {
 		return ResponseBody{}, fmt.Errorf("%s, request body: %s, requset err: %s", _url, requestStr, err.Error())

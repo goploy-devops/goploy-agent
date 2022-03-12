@@ -23,7 +23,7 @@ type Crons []Cron
 
 func (c Cron) GetList() (Crons, error) {
 	c.ServerId = goployServerID
-	responseBody, err := Request("/cron/getList", c)
+	responseBody, err := Request("/agent/getCronList", c)
 	if err != nil {
 		return Crons{}, err
 	}
