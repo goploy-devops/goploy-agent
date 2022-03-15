@@ -41,7 +41,7 @@ var gClient = &http.Client{Timeout: 5 * time.Second}
 
 // Init -
 func Init() {
-	goployURL = config.Toml.Goploy.URL
+	goployURL = config.Toml.Goploy.ReportURL
 	goployServerID = config.Toml.Goploy.ServerID
 }
 

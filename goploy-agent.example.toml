@@ -1,12 +1,9 @@
 env = 'production'
 
 [goploy]
-url = 'http://localhost:3001'
+reportURL = 'http://localhost:3001'
 key = '2021-12-17 10:44:44.5198737 +0800 CST m=+0.003999901'
-namespaceID = 1
 serverID = 1
-serverOwner = 'root'
-serverSSHKeyPath = '/root/.ssh/id_rsa'
 
 [log]
 path = 'stdout'

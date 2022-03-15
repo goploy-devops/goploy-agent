@@ -22,12 +22,9 @@ type WebConfig struct {
 }
 
 type GoployConfig struct {
-	URL              string `toml:"url"`
-	Key              string `toml:"key"`
-	NamespaceID      int64  `toml:"namespaceID"`
-	ServerID         int64  `toml:"serverID"`
-	ServerOwner      string `toml:"serverOwner"`
-	ServerSSHKeyPath string `toml:"serverSSHKeyPath"`
+	ReportURL string `toml:"reportURL"`
+	Key       string `toml:"key"`
+	ServerID  int64  `toml:"serverID"`
 }
 
 var Toml Config

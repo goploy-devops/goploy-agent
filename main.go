@@ -72,7 +72,7 @@ func main() {
 	println("Config Loaded:  " + core.GetConfigFile())
 	fmt.Printf("Server id:      %d\n", config.Toml.Goploy.ServerID)
 	println("Env:            " + config.Toml.Env)
-	println("Report to:      " + config.Toml.Goploy.URL)
+	println("Report to:      " + config.Toml.Goploy.ReportURL)
 	println("Log:            " + config.Toml.Log.Path)
 	if config.Toml.Web.Port != "" {
 		println("Listen:         " + config.Toml.Web.Port)
