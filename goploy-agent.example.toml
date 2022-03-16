@@ -2,8 +2,11 @@ env = 'production'
 
 [goploy]
 reportURL = 'http://localhost:3001'
+# The same as goploy.jwt.key in goploy.toml
 key = '2021-12-17 10:44:44.5198737 +0800 CST m=+0.003999901'
-serverID = 1
+# Support id | name | host
+uidType = 'id'
+uid = '1'
 
 [log]
 path = 'stdout'

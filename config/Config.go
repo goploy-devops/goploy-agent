@@ -24,7 +24,8 @@ type WebConfig struct {
 type GoployConfig struct {
 	ReportURL string `toml:"reportURL"`
 	Key       string `toml:"key"`
-	ServerID  int64  `toml:"serverID"`
+	UIDType   string `toml:"uidType"`
+	UID       string `toml:"uid"`
 }
 
 var Toml Config

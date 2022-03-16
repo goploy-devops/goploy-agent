@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/zhenorzz/goploy-agent/config"
+	"github.com/zhenorzz/goploy-agent/core"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -42,7 +43,61 @@ var gClient = &http.Client{Timeout: 5 * time.Second}
 // Init -
 func Init() {
 	goployURL = config.Toml.Goploy.ReportURL
-	goployServerID = config.Toml.Goploy.ServerID
+	goployServerID = getServerID()
+	core.Log(core.INFO, fmt.Sprintf("server id %d", goployServerID))
+}
+
+func getServerID() int64 {
+	if config.Toml.Goploy.UIDType == "id" {
+		serverID, err := strconv.ParseInt(config.Toml.Goploy.UID, 10, 64)
+		if err != nil {
+			core.Log(core.ERROR, fmt.Sprintf("Parse uid to server id error, %s", err.Error()))
+			return 0
+		}
+		return serverID
+	} else if config.Toml.Goploy.UIDType == "name" {
+		responseBody, err := Request("/agent/getServerID", struct {
+			Name string `json:"name"`
+		}{Name: config.Toml.Goploy.UID})
+		if err != nil {
+			core.Log(core.ERROR, fmt.Sprintf("request error, %s", err.Error()))
+			return 0
+		}
+
+		type Data struct {
+			ID int64 `json:"id"`
+		}
+
+		var data Data
+		err = json.Unmarshal(responseBody.Data, &data)
+		if err != nil {
+			core.Log(core.ERROR, fmt.Sprintf("Parse response body fail, %s", err.Error()))
+			return 0
+		}
+		return data.ID
+
+	} else if config.Toml.Goploy.UIDType == "host" {
+		responseBody, err := Request("/agent/getServerID", struct {
+			IP string `json:"ip"`
+		}{IP: config.Toml.Goploy.UID})
+		if err != nil {
+			core.Log(core.ERROR, fmt.Sprintf("request error, %s", err.Error()))
+			return 0
+		}
+
+		type Data struct {
+			ID int64 `json:"id"`
+		}
+
+		var data Data
+		err = json.Unmarshal(responseBody.Data, &data)
+		if err != nil {
+			core.Log(core.ERROR, fmt.Sprintf("Parse response body fail, %s", err.Error()))
+			return 0
+		}
+		return data.ID
+	}
+	return 0
 }
 
 // PaginationFrom param return pagination struct
