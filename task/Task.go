@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/go-co-op/gocron"
+	"github.com/zhenorzz/goploy-agent/config"
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/utils"
@@ -24,6 +25,10 @@ var JobList = map[[sha1.Size]byte]struct {
 }{}
 
 func Init() {
+	if config.Toml.Goploy.ReportURL == "" {
+		core.Log(core.WARNING, "no report url detect, turn to standalone mode")
+		return
+	}
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportCPUUsage)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportRAMUsage)
 	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportLoadavg)
