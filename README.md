@@ -1,15 +1,12 @@
 # goploy-agent
 An open-source and monitoring agent.
 
-## Background
-I need an agent to monitor my server, that it.
-
 ## Install
 1. Download the latest release
 
 ## Use
 1. Run ./goploy-agent or goploy-agent.exe or goploy-agent.mac
-2. Follow the installation guide
+2. cp [goploy-agent.example.toml](https://raw.githubusercontent.com/goploy-devops/goploy-agent/master/goploy-agent.example.toml) goploy-agent.toml  
 3. web http://ip:port
 
 ## Preview
@@ -18,7 +15,7 @@ I need an agent to monitor my server, that it.
 
 ## Contribute
 
-[Issue](https://github.com/zhenorzz/goploy-agent/issues/new) 
+[Issue](https://github.com/goploy-devops/goploy-agent/issues/new) 
 
 ## License
 
