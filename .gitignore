@@ -19,3 +19,4 @@ goploy-agent.exe*
 goploy-agent.mac
 goploy-agent.pid
 goploy-agent.toml
+goploy-agent.db

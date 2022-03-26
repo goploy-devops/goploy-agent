@@ -10,10 +10,12 @@ import (
 	"github.com/zhenorzz/goploy-agent/config"
 	"github.com/zhenorzz/goploy-agent/core"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+	"zombiezen.com/go/sqlite"
 )
 
 // ResponseBody struct
@@ -39,12 +41,55 @@ const (
 var goployURL string
 var goployServerID int64
 var gClient = &http.Client{Timeout: 5 * time.Second}
+var DB *sqlite.Conn
 
 // Init -
 func Init() {
+	c, err := sqlite.OpenConn(core.GetDBFile(), sqlite.OpenReadWrite|sqlite.OpenCreate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	DB = c
+	if err := createTable(); err != nil {
+		log.Fatal(err)
+	}
 	goployURL = config.Toml.Goploy.ReportURL
 	goployServerID = getServerID()
 	core.Log(core.INFO, fmt.Sprintf("server id %d", goployServerID))
+}
+
+func createTable() error {
+	stmt, _, err := DB.PrepareTransient(`
+		CREATE TABLE IF NOT EXISTS agent_log (
+		  type INTEGER,
+		  item TEXT,
+		  value TEXT,
+		  time TEXT
+		);
+	`)
+	if err != nil {
+		return err
+	}
+
+	if _, err := stmt.Step(); err != nil {
+		return err
+	}
+
+	stmt, _, err = DB.PrepareTransient(`
+		CREATE INDEX IF NOT EXISTS time_idx ON agent_log (time);
+	`)
+	if err != nil {
+		return err
+	}
+
+	if _, err := stmt.Step(); err != nil {
+		return err
+	}
+
+	if err := stmt.Finalize(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getServerID() int64 {
@@ -100,31 +145,23 @@ func getServerID() int64 {
 	return 0
 }
 
-// PaginationFrom param return pagination struct
-func PaginationFrom(param url.Values) (Pagination, error) {
-	page, err := strconv.ParseUint(param.Get("page"), 10, 64)
-	if err != nil {
-		return Pagination{}, errors.New("invalid page")
-	}
-	rows, err := strconv.ParseUint(param.Get("rows"), 10, 64)
-	if err != nil {
-		return Pagination{}, errors.New("invalid rows")
-	}
-	pagination := Pagination{Page: page, Rows: rows}
-	return pagination, nil
-}
+var ErrNoReportURL = errors.New("no report url in toml")
 
 func Request(uri string, data interface{}) (ResponseBody, error) {
+	responseBody := ResponseBody{}
+	if config.Toml.Goploy.ReportURL == "" {
+		return responseBody, ErrNoReportURL
+	}
 	_url := fmt.Sprintf("%s%s", goployURL, uri)
 	u, err := url.Parse(_url)
 	if err != nil {
-		return ResponseBody{}, fmt.Errorf("%s, parse error: %s", _url, err.Error())
+		return responseBody, fmt.Errorf("%s, parse error: %s", _url, err.Error())
 	}
 
 	requestData := new(bytes.Buffer)
 	err = json.NewEncoder(requestData).Encode(data)
 	if err != nil {
-		return ResponseBody{}, fmt.Errorf("%s, request data %+v, json encode error: %s", _url, data, err.Error())
+		return responseBody, fmt.Errorf("%s, request data %+v, json encode error: %s", _url, data, err.Error())
 	}
 	requestStr := requestData.String()
 	timestamp := fmt.Sprintf("%d", time.Now().Unix())
@@ -138,16 +175,15 @@ func Request(uri string, data interface{}) (ResponseBody, error) {
 	_url = u.String()
 	resp, err := gClient.Post(_url, "application/json", requestData)
 	if err != nil {
-		return ResponseBody{}, fmt.Errorf("%s, request body: %s, requset err: %s", _url, requestStr, err.Error())
+		return responseBody, fmt.Errorf("%s, request body: %s, requset err: %s", _url, requestStr, err.Error())
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return ResponseBody{}, fmt.Errorf("%s, request body: %s, http status code: %d", _url, requestStr, resp.StatusCode)
+		return responseBody, fmt.Errorf("%s, request body: %s, http status code: %d", _url, requestStr, resp.StatusCode)
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	var responseBody ResponseBody
 	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
 		return responseBody, fmt.Errorf("%s request body: %s, respond body: %s, decode json err: %s", _url, requestStr, string(body), err.Error())

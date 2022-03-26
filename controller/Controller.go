@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/gorilla/schema"
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/task"
@@ -17,8 +18,24 @@ import (
 // Controller struct
 type Controller struct{}
 
-func verify(data []byte, v interface{}) error {
+var decoder = schema.NewDecoder()
+
+func decodeJson(data []byte, v interface{}) error {
 	err := json.Unmarshal(data, v)
+	if err != nil {
+		return err
+	}
+	if err := core.Validate.Struct(v); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			return errors.New(err.Translate(core.Trans))
+		}
+	}
+	return nil
+}
+
+func decodeQuery(data map[string][]string, v interface{}) error {
+	decoder.IgnoreUnknownKeys(true)
+	err := decoder.Decode(v, data)
 	if err != nil {
 		return err
 	}
@@ -319,17 +336,23 @@ func (Controller) CronList(*core.Goploy) *core.Response {
 }
 
 func (Controller) CronLogs(gp *core.Goploy) *core.Response {
-	pagination, err := model.PaginationFrom(gp.URLQuery)
-	if err != nil {
+	type ReqData struct {
+		Page uint64 `schema:"page" validate:"gt=0"`
+		Rows uint64 `schema:"rows" validate:"gt=0"`
+	}
+
+	var reqData ReqData
+	if err := decodeQuery(gp.URLQuery, &reqData); err != nil {
 		return &core.Response{Code: core.Error, Message: err.Error()}
 	}
+
 	id, err := strconv.ParseInt(gp.URLQuery.Get("id"), 10, 64)
 	if err != nil {
 		return &core.Response{Code: core.Error, Message: err.Error()}
 	}
-	if crons, err := (model.CronLog{CronId: id}).GetList(pagination); err != nil {
+	if cronList, err := (model.CronLog{CronId: id}).GetList(reqData.Page, reqData.Rows); err != nil {
 		return &core.Response{Code: core.Error, Message: err.Error()}
 	} else {
-		return &core.Response{Data: crons}
+		return &core.Response{Data: cronList}
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"github.com/go-co-op/gocron"
-	"github.com/zhenorzz/goploy-agent/config"
 	"github.com/zhenorzz/goploy-agent/core"
 	"github.com/zhenorzz/goploy-agent/model"
 	"github.com/zhenorzz/goploy-agent/utils"
@@ -25,17 +24,13 @@ var JobList = map[[sha1.Size]byte]struct {
 }{}
 
 func Init() {
-	if config.Toml.Goploy.ReportURL == "" {
-		core.Log(core.WARNING, "no report url detect, turn to standalone mode")
-		return
-	}
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportCPUUsage)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportRAMUsage)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportLoadavg)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportDisk)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportDiskIO)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportNet)
-	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(reportTcp)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obCPUUsage)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obRAMUsage)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obLoadavg)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obDisk)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obDiskIO)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obNet)
+	_, _ = task.Every(1).Minute().WaitForSchedule().SingletonMode().Do(obTcp)
 	_, _ = task.Every(1).Minute().SingletonMode().Do(getCron)
 	task.StartAsync()
 }
@@ -112,11 +107,14 @@ func Shutdown(ctx context.Context) error {
 }
 
 func getCron() {
-	if crons, err := (model.Cron{}).GetList(); err != nil {
+	if cronList, err := (model.Cron{}).GetList(); err != nil {
 		core.Log(core.ERROR, fmt.Sprintf("get cron list failed, error: %s", err.Error()))
+		if err == model.ErrNoReportURL {
+			task.Remove(getCron)
+		}
 	} else {
 		cronHashMap := map[[sha1.Size]byte]int64{}
-		for _, cron := range crons {
+		for _, cron := range cronList {
 			cronHash := sha1.Sum([]byte(fmt.Sprintf("%v", cron)))
 			cronHashMap[cronHash] = cron.ID
 			if _, ok := JobList[cronHash]; !ok {
@@ -138,7 +136,7 @@ func getCron() {
 	}
 }
 
-func reportCPUUsage() {
+func obCPUUsage() {
 	getCPUSample := func() (idle, total uint64) {
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
@@ -175,17 +173,21 @@ func reportCPUUsage() {
 	idleTicks := float64(idle1 - idle0)
 	totalTicks := float64(total1 - total0)
 	cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
-	if err := (model.Agent{
+	agent := model.Agent{
 		Type:       model.TypeCPU,
 		Item:       "cpu_usage",
 		Value:      fmt.Sprintf("%.2f", cpuUsage),
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+	if err := agent.Insert(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
 }
 
-func reportRAMUsage() {
+func obRAMUsage() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("head", "-n", "2", "/proc/meminfo")
@@ -212,17 +214,22 @@ func reportRAMUsage() {
 		}
 	}
 	ramUsage := 100 * (total - free) / total
-	if err := (model.Agent{
+
+	agent := model.Agent{
 		Type:       model.TypeRAM,
 		Item:       "ram_usage",
 		Value:      fmt.Sprintf("%.2f", ramUsage),
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+	if err := agent.Insert(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
 }
 
-func reportLoadavg() {
+func obLoadavg() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("cat", "/proc/loadavg")
@@ -233,33 +240,47 @@ func reportLoadavg() {
 		return
 	}
 	procLoadavg := strings.Split(stdout.String(), " ")
-	if err := (model.Agent{
+	agent := model.Agent{
 		Type:       model.TypeLoadavg,
 		Item:       "loadavg_1m",
 		Value:      procLoadavg[0],
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
-	if err := (model.Agent{
+	if err := agent.Insert(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+
+	agent = model.Agent{
 		Type:       model.TypeLoadavg,
 		Item:       "loadavg_5m",
 		Value:      procLoadavg[1],
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
-	if err := (model.Agent{
+	if err := agent.Insert(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+
+	agent = model.Agent{
 		Type:       model.TypeLoadavg,
 		Item:       "loadavg_15m",
 		Value:      procLoadavg[2],
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+	if err := agent.Insert(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
 }
 
-func reportTcp() {
+func obTcp() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("wc", "-l", "/proc/net/tcp")
@@ -269,13 +290,16 @@ func reportTcp() {
 		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
 		return
 	}
-
-	if err := (model.Agent{
+	agent := model.Agent{
 		Type:       model.TypeTcp,
 		Item:       "tcp.total",
 		Value:      strings.Fields(utils.ClearNewline(stdout.String()))[0],
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
+	if err := agent.Insert(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
 
@@ -289,18 +313,21 @@ func reportTcp() {
 		return
 	}
 
-	if err := (model.Agent{
+	agent = model.Agent{
 		Type:       model.TypeTcp,
 		Item:       "tcp.established",
 		Value:      utils.ClearNewline(stdout.String()),
 		ReportTime: time.Now().Format("2006-01-02 15:04"),
-	}).Request(); err != nil {
+	}
+	if err := agent.Report(); err != nil {
 		core.Log(core.ERROR, err.Error())
 	}
-
+	if err := agent.Insert(); err != nil {
+		core.Log(core.ERROR, err.Error())
+	}
 }
 
-func reportNet() {
+func obNet() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("cat", "/proc/net/dev")
@@ -324,7 +351,7 @@ func reportNet() {
 		return
 	}
 	net2 := strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:]
-
+	var agent model.Agent
 	for i, line := range net1 {
 		fields1 := strings.Fields(line)
 		logType := 0
@@ -348,27 +375,35 @@ func reportNet() {
 
 		out := out2 - out1
 
-		if err := (model.Agent{
+		agent = model.Agent{
 			Type:       logType,
 			Item:       fields1[0][:len(fields1[0])-1] + ".in",
 			Value:      strconv.Itoa(in),
 			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}).Request(); err != nil {
+		}
+		if err := agent.Report(); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+		if err := agent.Insert(); err != nil {
 			core.Log(core.ERROR, err.Error())
 		}
 
-		if err := (model.Agent{
+		agent = model.Agent{
 			Type:       logType,
 			Item:       fields1[0][:len(fields1[0])-1] + ".out",
 			Value:      strconv.Itoa(out),
 			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}).Request(); err != nil {
+		}
+		if err := agent.Report(); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+		if err := agent.Insert(); err != nil {
 			core.Log(core.ERROR, err.Error())
 		}
 	}
 }
 
-func reportDisk() {
+func obDisk() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command("df", "--output=pcent,ipcent,source")
@@ -378,6 +413,7 @@ func reportDisk() {
 		core.Log(core.ERROR, cmd.String()+" err: "+err.Error()+", detail: "+stderr.String())
 		return
 	}
+	var agent model.Agent
 	for _, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n")[1:] {
 		fields := strings.Fields(line)
 		diskName := strings.Join(fields[2:], " ")
@@ -389,36 +425,44 @@ func reportDisk() {
 		diskIUsedPcent := fields[1][:len(fields[1])-1]
 
 		if diskUsedPcent != "" {
-			if err := (model.Agent{
+			agent = model.Agent{
 				Type:       model.TypeDiskUsage,
 				Item:       diskName + ".usage",
 				Value:      diskUsedPcent,
 				ReportTime: time.Now().Format("2006-01-02 15:04"),
-			}).Request(); err != nil {
+			}
+			if err := agent.Report(); err != nil {
+				core.Log(core.ERROR, err.Error())
+			}
+			if err := agent.Insert(); err != nil {
 				core.Log(core.ERROR, err.Error())
 			}
 		}
 
 		if diskIUsedPcent != "" {
-			if err := (model.Agent{
+			agent = model.Agent{
 				Type:       model.TypeDiskUsage,
 				Item:       diskName + ".inode_usage",
 				Value:      diskIUsedPcent,
 				ReportTime: time.Now().Format("2006-01-02 15:04"),
-			}).Request(); err != nil {
+			}
+			if err := agent.Report(); err != nil {
+				core.Log(core.ERROR, err.Error())
+			}
+			if err := agent.Insert(); err != nil {
 				core.Log(core.ERROR, err.Error())
 			}
 		}
 	}
 }
 
-func reportDiskIO() {
+func obDiskIO() {
 	disks, err := ioutil.ReadDir("/sys/block/")
 	if err != nil {
 		core.Log(core.ERROR, "err: "+err.Error())
 		return
 	}
-
+	var agent model.Agent
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	for _, disk := range disks {
@@ -457,22 +501,29 @@ func reportDiskIO() {
 		wIOpms2, _ := strconv.Atoi(diskStats2[4])
 
 		wIOps := wIOpms2 - wIOpms1
-
-		if err := (model.Agent{
+		agent = model.Agent{
 			Type:       model.TypeDiskIO,
 			Item:       diskName + ".read_iops",
 			Value:      strconv.Itoa(rIOps),
 			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}).Request(); err != nil {
+		}
+		if err := agent.Report(); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+		if err := agent.Insert(); err != nil {
 			core.Log(core.ERROR, err.Error())
 		}
 
-		if err := (model.Agent{
+		agent = model.Agent{
 			Type:       model.TypeDiskIO,
 			Item:       diskName + ".write_iops",
 			Value:      strconv.Itoa(wIOps),
 			ReportTime: time.Now().Format("2006-01-02 15:04"),
-		}).Request(); err != nil {
+		}
+		if err := agent.Report(); err != nil {
+			core.Log(core.ERROR, err.Error())
+		}
+		if err := agent.Insert(); err != nil {
 			core.Log(core.ERROR, err.Error())
 		}
 	}

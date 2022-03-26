@@ -37,8 +37,8 @@ func GetAssetDir() string {
 	return app[0 : i+1]
 }
 
-func GetEnvFile() string {
-	return path.Join(GetAssetDir(), ".env")
+func GetDBFile() string {
+	return path.Join(GetAssetDir(), "goploy-agent.db")
 }
 
 func GetConfigFile() string {

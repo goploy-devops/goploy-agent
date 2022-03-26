@@ -15,7 +15,7 @@ type CronLog struct {
 
 type CronLogs []CronLog
 
-func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
+func (cl CronLog) GetList(page, rows uint64) (CronLogs, error) {
 	responseBody, err := Request("/agent/getCronLogs", struct {
 		ServerID int64  `json:"serverId"`
 		CronID   int64  `json:"cronId"`
@@ -24,8 +24,8 @@ func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
 	}{
 		ServerID: goployServerID,
 		CronID:   cl.CronId,
-		Page:     pagination.Page,
-		Rows:     pagination.Rows,
+		Page:     page,
+		Rows:     rows,
 	})
 	if err != nil {
 		return CronLogs{}, err
@@ -44,5 +44,29 @@ func (cl CronLog) GetList(pagination Pagination) (CronLogs, error) {
 func (cl CronLog) Report() error {
 	cl.ServerId = goployServerID
 	_, err := Request("/agent/cronReport", cl)
+	if err == ErrNoReportURL {
+		return nil
+	}
+	return err
+}
+
+func (cl CronLog) Insert() error {
+	stmt, err := DB.Prepare("INSERT INTO cron_log (type, item, value, time) VALUES ($type, $item, $value, $item);")
+	if err != nil {
+		return err
+	}
+	stmt.SetInt64("$type", cl.CronId)
+	stmt.SetText("$item", cl.Message)
+	stmt.SetText("$value", cl.Message)
+	stmt.SetText("$time", cl.ReportTime)
+
+	if _, err = stmt.Step(); err != nil {
+		return err
+	}
+
+	if err = stmt.Finalize(); err != nil {
+		return err
+	}
+
 	return err
 }
