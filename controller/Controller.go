@@ -47,6 +47,60 @@ func decodeQuery(data map[string][]string, v interface{}) error {
 	return nil
 }
 
+func (Controller) Chart(gp *core.Goploy) *core.Response {
+	type ReqData struct {
+		Type          int    `schema:"type" validate:"gt=0"`
+		DatetimeRange string `schema:"datetimeRange"  validate:"required"`
+	}
+	var reqData ReqData
+	if err := decodeQuery(gp.URLQuery, &reqData); err != nil {
+		return &core.Response{Code: core.Error, Message: err.Error()}
+	}
+
+	datetimeRange := strings.Split(reqData.DatetimeRange, ",")
+	if len(datetimeRange) != 2 {
+		return &core.Response{Code: core.Error, Message: "invalid datetime range"}
+	}
+	agentLogs, err := (model.Agent{Type: reqData.Type}).GetListBetweenTime(datetimeRange[0], datetimeRange[1])
+	if err != nil {
+		return &core.Response{Code: core.Error, Message: err.Error()}
+	}
+
+	type Flag struct {
+		Count int
+		Curr  int
+	}
+
+	flagMap := map[string]Flag{}
+
+	for _, log := range agentLogs {
+		if _, ok := flagMap[log.Item]; !ok {
+			flagMap[log.Item] = Flag{}
+		}
+		flagMap[log.Item] = Flag{Count: flagMap[log.Item].Count + 1}
+	}
+
+	serverAgentMap := map[string]model.AgentLogs{}
+	for _, log := range agentLogs {
+		flagMap[log.Item] = Flag{
+			Count: flagMap[log.Item].Count,
+			Curr:  flagMap[log.Item].Curr + 1,
+		}
+		step := flagMap[log.Item].Count / 60
+		if flagMap[log.Item].Count <= 60 ||
+			flagMap[log.Item].Curr%step == 0 ||
+			flagMap[log.Item].Count-1 == flagMap[log.Item].Curr {
+			serverAgentMap[log.Item] = append(serverAgentMap[log.Item], log)
+		}
+	}
+
+	return &core.Response{
+		Data: struct {
+			ServerAgentMap map[string]model.AgentLogs `json:"map"`
+		}{ServerAgentMap: serverAgentMap},
+	}
+}
+
 // General info
 // uname -mrs
 // cat /etc/os-release
@@ -115,9 +169,7 @@ func (Controller) General(*core.Goploy) *core.Response {
 		generalInfo.Uptime = utils.ClearNewline(stdout.String())
 	}
 
-	return &core.Response{
-		Data: generalInfo,
-	}
+	return &core.Response{Data: generalInfo}
 }
 
 // Loadavg info
@@ -155,9 +207,7 @@ func (Controller) Loadavg(*core.Goploy) *core.Response {
 		loadavgInfo.Cores = utils.ClearNewline(stdout.String())
 	}
 
-	return &core.Response{
-		Data: loadavgInfo,
-	}
+	return &core.Response{Data: loadavgInfo}
 }
 
 // RAM info
@@ -188,9 +238,7 @@ func (Controller) RAM(*core.Goploy) *core.Response {
 		}
 	}
 
-	return &core.Response{
-		Data: ramInfo,
-	}
+	return &core.Response{Data: ramInfo}
 }
 
 // CPU info

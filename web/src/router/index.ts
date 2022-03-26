@@ -6,16 +6,24 @@ import Layout from '@/layout/index.vue'
 
 export const navbarRoutes: RouteRecordRaw = {
   path: '/',
-  redirect: '/general',
+  redirect: '/dashboard',
   component: Layout,
   meta: { hidden: true },
   children: [
     {
+      path: 'dashboard',
+      name: 'Dashboard',
+      component: () => import('@/views/dashboard.vue'),
+      meta: {
+        icon: 'el-icon-data-analysis',
+      },
+    },
+    {
       path: 'general',
       name: 'General',
-      component: () => import('@/views/index.vue'),
+      component: () => import('@/views/general.vue'),
       meta: {
-        icon: 'el-icon-info',
+        icon: 'el-icon-reading',
       },
     },
     {

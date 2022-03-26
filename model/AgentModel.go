@@ -8,6 +8,8 @@ type Agent struct {
 	ReportTime string `json:"reportTime"`
 }
 
+type AgentLogs []Agent
+
 const (
 	_ = iota
 	TypeCPU
@@ -19,6 +21,33 @@ const (
 	TypeDiskUsage
 	TypeDiskIO
 )
+
+func (a Agent) GetListBetweenTime(low, high string) (AgentLogs, error) {
+	agentLogs := AgentLogs{}
+	stmt := DB.Prep("SELECT item, value, time FROM agent_log where type = $type and time BETWEEN $low AND $high;")
+
+	stmt.SetInt64("$type", int64(a.Type))
+	stmt.SetText("$low", low)
+	stmt.SetText("$high", high)
+	agent := Agent{}
+	for {
+		hasRow, err := stmt.Step()
+		if err != nil {
+			return agentLogs, err
+		}
+		if !hasRow {
+			break
+		}
+
+		agent.Item = stmt.GetText("item")
+		agent.Value = stmt.GetText("value")
+		agent.ReportTime = stmt.GetText("time")
+
+		agentLogs = append(agentLogs, agent)
+	}
+	stmt.Finalize()
+	return agentLogs, nil
+}
 
 func (a Agent) Report() error {
 	a.ServerId = goployServerID

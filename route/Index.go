@@ -11,6 +11,7 @@ func Init() *router.Router {
 	var rt = new(router.Router)
 	// rt.Middleware(example)
 
+	rt.Add("/chart", http.MethodGet, controller.Controller{}.Chart)
 	rt.Add("/general", http.MethodGet, controller.Controller{}.General)
 	rt.Add("/loadavg", http.MethodGet, controller.Controller{}.Loadavg)
 	rt.Add("/ram", http.MethodGet, controller.Controller{}.RAM)

@@ -55,7 +55,12 @@
             >
               <div class="card-blue-title">1 min</div>
               <div class="card-value">
-                {{ ((loadavgInfo.avg / loadavgInfo.cores) * 100).toFixed() }}
+                {{
+                  (
+                    (Number(loadavgInfo.avg) / Number(loadavgInfo.cores)) *
+                    100
+                  ).toFixed()
+                }}
                 <span class="card-unit">%</span>
               </div>
               <div class="card-value">{{ loadavgInfo.avg }}</div>
@@ -70,7 +75,12 @@
             >
               <div class="card-blue-title">5 min</div>
               <div class="card-value">
-                {{ ((loadavgInfo.avg5 / loadavgInfo.cores) * 100).toFixed() }}
+                {{
+                  (
+                    (Number(loadavgInfo.avg5) / Number(loadavgInfo.cores)) *
+                    100
+                  ).toFixed()
+                }}
                 <span class="card-unit">%</span>
               </div>
               <div class="card-value">{{ loadavgInfo.avg5 }}</div>
@@ -80,7 +90,10 @@
                 <div class="card-blue-title">15 min</div>
                 <div class="card-value">
                   {{
-                    ((loadavgInfo.avg15 / loadavgInfo.cores) * 100).toFixed()
+                    (
+                      (Number(loadavgInfo.avg15) / Number(loadavgInfo.cores)) *
+                      100
+                    ).toFixed()
                   }}
                   <span class="card-unit">%</span>
                 </div>
@@ -188,7 +201,7 @@
               type="text"
               style="margin-left: 10px; font-size: 16px"
               icon="el-icon-refresh"
-              @click="getDiskUsageInfo()"
+              @click="getDiskUsageList()"
             ></el-button>
           </template>
           <el-table :data="diskUsageList" style="width: 100%">

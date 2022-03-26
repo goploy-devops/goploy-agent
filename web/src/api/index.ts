@@ -1,9 +1,23 @@
 import { Request, Pagination } from './types'
 
+export class Chart extends Request {
+  readonly url = '/chart'
+  readonly method = 'get'
+  public param: {
+    type: number
+    datetimeRange: string
+  }
+  constructor(param: Chart['param']) {
+    super()
+    this.param = param
+  }
+}
+
+
 export class General extends Request {
   readonly url = '/general'
   readonly method = 'get'
-  public datagram!: {
+  public declare datagram: {
     kernelVersion: string
     os: string
     cores: string
@@ -15,7 +29,7 @@ export class General extends Request {
 export class Loadavg extends Request {
   readonly url = '/loadavg'
   readonly method = 'get'
-  public datagram!: {
+  public declare datagram: {
     avg: string
     avg5: string
     avg15: string
@@ -26,7 +40,7 @@ export class Loadavg extends Request {
 export class RAM extends Request {
   readonly url = '/ram'
   readonly method = 'get'
-  public datagram!: {
+  public declare datagram: {
     total: number
     free: number
   }
@@ -74,7 +88,7 @@ export class CronData {
 export class CronList extends Request {
   readonly url = '/cronList'
   readonly method = 'get'
-  public datagram!: CronData['datagram'][]
+  public declare datagram: CronData['datagram'][]
 }
 
 export class CronLogData {
@@ -94,7 +108,7 @@ export class CronLogs extends Request {
     id: number
   }
 
-  public datagram!: CronLogData['datagram'][]
+  public declare datagram: CronLogData['datagram'][]
 
   constructor(param: CronLogs['param'], pagination: Pagination) {
     super()
