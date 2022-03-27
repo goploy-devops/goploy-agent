@@ -51,7 +51,9 @@ func (cl CronLog) Report() error {
 }
 
 func (cl CronLog) Insert() error {
-	stmt, err := DB.Prepare("INSERT INTO cron_log (type, item, value, time) VALUES ($type, $item, $value, $item);")
+	conn := DB.Get(nil)
+	defer DB.Put(conn)
+	stmt, err := conn.Prepare("INSERT INTO cron_log (type, item, value, time) VALUES ($type, $item, $value, $item);")
 	if err != nil {
 		return err
 	}
@@ -61,10 +63,6 @@ func (cl CronLog) Insert() error {
 	stmt.SetText("$time", cl.ReportTime)
 
 	if _, err = stmt.Step(); err != nil {
-		return err
-	}
-
-	if err = stmt.Finalize(); err != nil {
 		return err
 	}
 

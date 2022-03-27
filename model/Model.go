@@ -15,7 +15,7 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-	"zombiezen.com/go/sqlite"
+	"zombiezen.com/go/sqlite/sqlitex"
 )
 
 // ResponseBody struct
@@ -23,13 +23,6 @@ type ResponseBody struct {
 	Code    int
 	Message string
 	Data    json.RawMessage
-}
-
-// Pagination struct
-type Pagination struct {
-	Page  uint64 `json:"page"`
-	Rows  uint64 `json:"rows"`
-	Total uint64 `json:"total"`
 }
 
 // ResponseSuccess response state type
@@ -41,11 +34,11 @@ const (
 var goployURL string
 var goployServerID int64
 var gClient = &http.Client{Timeout: 5 * time.Second}
-var DB *sqlite.Conn
+var DB *sqlitex.Pool
 
 // Init -
 func Init() {
-	c, err := sqlite.OpenConn(core.GetDBFile(), sqlite.OpenReadWrite|sqlite.OpenCreate)
+	c, err := sqlitex.Open(core.GetDBFile(), 0, 10)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +52,9 @@ func Init() {
 }
 
 func createTable() error {
-	stmt, _, err := DB.PrepareTransient(`
+	conn := DB.Get(nil)
+	defer DB.Put(conn)
+	stmt, _, err := conn.PrepareTransient(`
 		CREATE TABLE IF NOT EXISTS agent_log (
 		  type INTEGER,
 		  item TEXT,
@@ -75,7 +70,11 @@ func createTable() error {
 		return err
 	}
 
-	stmt, _, err = DB.PrepareTransient(`
+	if err := stmt.Finalize(); err != nil {
+		return err
+	}
+
+	stmt, _, err = conn.PrepareTransient(`
 		CREATE INDEX IF NOT EXISTS time_idx ON agent_log (time);
 	`)
 	if err != nil {
