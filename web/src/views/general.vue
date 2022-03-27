@@ -361,7 +361,13 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/mixin.scss';
+
 .app-container {
+  width: 100%;
+  max-height: calc(100vh - 61px);
+  overflow-y: auto;
+  @include scrollBar();
   .card-blue-title {
     margin-top: 16px;
     color: #409eff;

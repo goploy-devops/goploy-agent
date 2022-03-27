@@ -20,3 +20,5 @@ goploy-agent.mac
 goploy-agent.pid
 goploy-agent.toml
 goploy-agent.db
+goploy-agent.db-shm
+goploy-agent.db-wal

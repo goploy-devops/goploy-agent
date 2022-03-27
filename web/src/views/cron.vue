@@ -152,6 +152,13 @@ export default defineComponent({
 <style lang="scss" scoped>
 @import '@/styles/mixin.scss';
 
+.app-container {
+  width: 100%;
+  max-height: calc(100vh - 61px);
+  overflow-y: auto;
+  @include scrollBar();
+}
+
 .cron {
   &-left {
     width: 180px;

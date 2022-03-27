@@ -24,6 +24,7 @@
         style="margin-bottom: 10px"
       >
         <div
+          :id="name"
           :ref="name"
           style="height: 288px; border: solid 1px #e6e6e6; padding: 10px 0"
         ></div>
@@ -151,7 +152,7 @@ export default defineComponent({
       datetimeRange: <Dayjs[]>[],
     }
   },
-  created() {
+  mounted() {
     this.handleRefresh()
   },
   methods: {
@@ -176,8 +177,10 @@ export default defineComponent({
       })
         .request()
         .then((response) => {
-          echarts.dispose(<HTMLDivElement>this.$refs[chartName])
-          let chart = echarts.init(<HTMLDivElement>this.$refs[chartName])
+          echarts.dispose(<HTMLDivElement>document.getElementById(chartName))
+          let chart = echarts.init(
+            <HTMLDivElement>document.getElementById(chartName)
+          )
           let chartOption = deepClone(chartBaseOption)
           chartOption.title.text = this.chartNameMap[chartName].title
           chartOption.title.subtext = this.chartNameMap[chartName].subtitle
@@ -218,5 +221,13 @@ export default defineComponent({
     font-weight: 500;
     font-size: 14px;
   }
+}
+
+@import '@/styles/mixin.scss';
+.chart-container {
+  width: 100%;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  @include scrollBar();
 }
 </style>
