@@ -1,6 +1,8 @@
 # goploy-agent
 An open-source and monitoring agent.
 
+You can use it alone or with [goploy](https://github.com/zhenorzz/goploy/)
+
 ## Install
 1. Download the latest release
 
@@ -12,6 +14,7 @@ An open-source and monitoring agent.
 ## Preview
 ![Preview](./preview.png)
 ![Preview1](./preview_1.png)
+![Preview2](./preview_2.png)
 
 ## Contribute
 
