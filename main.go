@@ -107,6 +107,12 @@ func main() {
 			fmt.Printf("Task shutdown failed, err: %s\n", err.Error())
 		}
 		println("Task shutdown gracefully")
+
+		println("SQLite is trying to shutdown, wait for a minute")
+		if err := model.Shutdown(); err != nil {
+			fmt.Printf("SQLite shutdown failed, err: %s\n", err.Error())
+		}
+		println("SQLite shutdown gracefully")
 	}()
 	if config.Toml.Web.Port != "" {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

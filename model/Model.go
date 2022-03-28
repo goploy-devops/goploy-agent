@@ -51,6 +51,10 @@ func Init() {
 	core.Log(core.INFO, fmt.Sprintf("server id %d", goployServerID))
 }
 
+func Shutdown() error {
+	return DB.Close()
+}
+
 func createTable() error {
 	conn := DB.Get(nil)
 	defer DB.Put(conn)
