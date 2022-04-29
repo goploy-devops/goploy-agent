@@ -190,7 +190,7 @@ func obCPUUsage() {
 func obRAMUsage() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("head", "-n", "2", "/proc/meminfo")
+	cmd := exec.Command("head", "-n", "3", "/proc/meminfo")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
@@ -199,6 +199,7 @@ func obRAMUsage() {
 	}
 	total := 0.0
 	free := 0.0
+	available := 0.0
 	for i, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n") {
 		fields := strings.Fields(line)
 		if i == 0 {
@@ -206,15 +207,24 @@ func obRAMUsage() {
 			if err == nil {
 				total += val // tally up all the numbers to get total ticks
 			}
-		} else if i == 1 {
+		} else if i == 1 && fields[0] == "MemFree:" {
 			val, err := strconv.ParseFloat(fields[1], 64)
 			if err == nil {
 				free += val // tally up all the numbers to get total ticks
 			}
+		} else if i == 2 && fields[0] == "MemAvailable:" {
+			val, err := strconv.ParseFloat(fields[1], 64)
+			if err == nil {
+				available += val // tally up all the numbers to get total ticks
+			}
 		}
 	}
-	ramUsage := 100 * (total - free) / total
 
+	if available > 0 {
+		free = available
+	}
+
+	ramUsage := 100 * (total - free) / total
 	agent := model.Agent{
 		Type:       model.TypeRAM,
 		Item:       "ram_usage",
