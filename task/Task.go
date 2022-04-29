@@ -199,7 +199,6 @@ func obRAMUsage() {
 	}
 	total := 0.0
 	free := 0.0
-	available := 0.0
 	for i, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n") {
 		fields := strings.Fields(line)
 		if i == 0 {
@@ -215,13 +214,9 @@ func obRAMUsage() {
 		} else if i == 2 && fields[0] == "MemAvailable:" {
 			val, err := strconv.ParseFloat(fields[1], 64)
 			if err == nil {
-				available += val // tally up all the numbers to get total ticks
+				free += val // tally up all the numbers to get total ticks
 			}
 		}
-	}
-
-	if available > 0 {
-		free = available
 	}
 
 	ramUsage := 100 * (total - free) / total
