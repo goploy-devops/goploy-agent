@@ -278,9 +278,6 @@ func (Controller) Net(*core.Goploy) *core.Response {
 	} else {
 		for _, line := range strings.Split(utils.ClearNewline(stdout.String()), "\n")[2:] {
 			fields := strings.Fields(line)
-			if !strings.HasPrefix(fields[0], "eth") && !strings.HasPrefix(fields[0], "lo") {
-				continue
-			}
 			netList = append(netList, fields)
 		}
 
